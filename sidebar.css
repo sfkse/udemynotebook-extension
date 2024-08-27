@@ -1,0 +1,9 @@
+#sidebar-content {
+  padding: 10px;
+  color: white;
+}
+
+#notes-list {
+  max-height: 80%;
+  overflow-y: auto;
+}
