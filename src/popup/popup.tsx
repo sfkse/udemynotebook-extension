@@ -1,0 +1,149 @@
+import React, { useEffect } from "react";
+import ReactDOM from "react-dom";
+
+import "fontsource-roboto";
+import styled from "styled-components";
+import { Button } from "../components/Button";
+import "./popup.css";
+import { IUser } from "../utils/types";
+import { API_URL } from "../utils/config";
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "Roboto", sans-serif;
+  padding: 1rem 2rem;
+  height: 200px;
+  width: 300px;
+  color: var(--notebook-secondary-color);
+`;
+
+const Heading = styled.h1`
+  font-size: 18px;
+  text-align: center;
+`;
+
+const LearnMore = styled.a`
+  font-size: 11px;
+  color: var(--notebook-green);
+  text-decoration: underline;
+  cursor: pointer;
+`;
+
+const LoginText = styled.p`
+  font-size: 14px;
+  text-align: center;
+  color: var(--notebook-secondary-color);
+`;
+
+const App: React.FC<{}> = () => {
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const [user, setUser] = React.useState<IUser>({ userID: "", email: "" });
+
+  useEffect(() => {
+    chrome.storage.sync.get(["userID", "email"], (result) => {
+      setUser({ userID: result.userID, email: result.email });
+    });
+  }, []);
+
+  const handleGoogleLogin = () => {
+    setIsLoggingIn(true);
+    // Send message to background script to start login flow
+    chrome.runtime.sendMessage({ action: "login" }, async (response) => {
+      if (response.success) {
+        console.log("Logged in successfully:", response.token);
+        try {
+          const { id: googleID, email } = await fetchUserProfile(
+            response.token
+          );
+          // Save user info db
+          const res = await fetch(`${API_URL}/users/auth`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ googleID, email }),
+          });
+
+          if (!res.ok) {
+            alert("Something went wrong. Please try again.");
+            setIsLoggingIn(false);
+            return;
+          }
+          const data = await res.json();
+          console.log(data);
+          chrome.storage.sync.set({ userID: data.userID, email });
+          setUser({ userID: data.userID, email });
+          setIsLoggingIn(false);
+
+          // Send the login message to the active tab's content script
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]?.id) {
+              chrome.tabs.sendMessage(
+                tabs[0].id,
+                {
+                  message: "login",
+                  data: { userID: data.userID, email },
+                },
+                (response) => {
+                  console.log("Message sent to content script:", response);
+                }
+              );
+            }
+          });
+        } catch (error) {
+          setIsLoggingIn(false);
+          return alert(`Failed to fetch user profile: ${error}`);
+        }
+      } else {
+        setIsLoggingIn(false);
+        return alert(`Login failed: ${response.error}`);
+      }
+    });
+  };
+
+  function fetchUserProfile(token) {
+    return fetch("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((userInfo) => userInfo)
+      .catch((error) => {
+        console.error("Error fetching user info:", error);
+      });
+  }
+
+  return (
+    <Container>
+      <Heading>Udemy Notebook App</Heading>
+      {user.userID ? (
+        <p>Welcome back, {user.email}</p>
+      ) : (
+        <>
+          <LoginText>
+            Login to save your notes and access them from any device
+          </LoginText>
+          <Button
+            disabled={isLoggingIn}
+            icon="https://iili.io/d8umXF2.png"
+            title="Login with Google"
+            handleClick={handleGoogleLogin}
+          >
+            Login with Google
+          </Button>
+        </>
+      )}
+      <LearnMore href="#">Learn more about the app</LearnMore>
+    </Container>
+  );
+};
+
+const root = document.createElement("div");
+document.body.appendChild(root);
+ReactDOM.render(<App />, root);
+

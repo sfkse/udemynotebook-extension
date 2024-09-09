@@ -1,0 +1,34 @@
+@import "react-quill/dist/quill.snow.css";
+
+:root {
+  --notebook-dark-primary-color: rgba(17, 24, 39, 1);
+  --notebook-dark-secondary-color: rgba(31, 41, 55, 1);
+  --notebook-secondary-color: rgba(235, 232, 232, 1);
+  --notebook-green: rgba(16, 174, 125, 1);
+  --notebook-light-green: rgba(93, 182, 155, 1);
+}
+
+body {
+  font-family: "Roboto", sans-serif;
+  color: var(--notebook-secondary-color);
+  /* background-color: var(--notebook-dark-primary-color); */
+  margin: 0;
+  padding: 0;
+}
+
+.quill {
+  background-color: var(--notebook-secondary-color) !important;
+  color: var(--notebook-dark-primary-color) !important;
+}
+
+.ql-container {
+  height: 200px;
+  border: none;
+  border-radius: 0;
+  background-color: var(--notebook-secondary-color) !important;
+}
+
+.ql-editor {
+  height: 100%;
+}
+

@@ -1,0 +1,15 @@
+:root {
+  --notebook-dark-primary-color: rgba(17, 24, 39, 1);
+  --notebook-dark-secondary-color: rgba(31, 41, 55, 1);
+  --notebook-secondary-color: rgba(235, 232, 232, 1);
+  --notebook-green: rgba(16, 174, 125, 1);
+  --notebook-light-green: rgba(93, 182, 155, 1);
+}
+
+body {
+  font-family: "Roboto", sans-serif;
+  background-color: var(--notebook-dark-primary-color);
+  margin: 0;
+  padding: 0;
+}
+

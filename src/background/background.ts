@@ -4,11 +4,6 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("Udemy Note Taker Extension installed.");
 });
 
-chrome.action.onClicked.addListener(() => {
-  // Open the extension popup when the action icon is clicked
-  chrome.action.openPopup();
-});
-
 // Handle authentication flow with Google
 function authenticateWithGoogle(interactive = true) {
   return new Promise((resolve, reject) => {
@@ -41,4 +36,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Refresh token logic can be added here if required (e.g., token expiration management).
-
