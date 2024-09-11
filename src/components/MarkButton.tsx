@@ -3,31 +3,17 @@ import { Editor } from "slate";
 import { useSlate } from "slate-react";
 import styled from "styled-components";
 
-type IconProps = {
-  children: React.ReactNode;
-};
-
 type MarkButtonProps = {
   format: string;
   icon: string;
   toggleMark: (editor: Editor, format: string) => void;
 };
 
-const Button = styled.button<{ $active: boolean }>`
-  border: ${({ $active }) =>
-    $active ? "2px solid var(--notebook-green)" : "none"};
-  cursor: pointer;
-  margin-right: 0.5rem;
-  width: 25px;
-  height: 20px;
-  border-radius: 2px;
-`;
-
-const Icon = styled.img`
-  max-width: 40%;
-`;
-
-const MarkButton = ({ format, icon, toggleMark }: MarkButtonProps) => {
+const MarkButton: React.FC<MarkButtonProps> = ({
+  format,
+  icon,
+  toggleMark,
+}) => {
   const editor = useSlate();
 
   const isMarkActive = (editor, format) => {
@@ -49,4 +35,18 @@ const MarkButton = ({ format, icon, toggleMark }: MarkButtonProps) => {
 };
 
 export default MarkButton;
+
+const Button = styled.button<{ $active: boolean }>`
+  border: ${({ $active }) =>
+    $active ? "2px solid var(--notebook-green)" : "none"};
+  cursor: pointer;
+  margin-right: 0.5rem;
+  width: 25px;
+  height: 20px;
+  border-radius: 2px;
+`;
+
+const Icon = styled.img`
+  max-width: 40%;
+`;
 

@@ -8,36 +8,6 @@ import { IUser } from "../utils/types";
 import { getUserProfileInfo } from "../api/user";
 import { authenticateUser } from "api/auth";
 
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  font-family: "Roboto", sans-serif;
-  padding: 1rem 2rem;
-  height: 200px;
-  width: 300px;
-  color: var(--notebook-secondary-color);
-`;
-
-const Heading = styled.h1`
-  font-size: 18px;
-  text-align: center;
-`;
-
-const LearnMore = styled.a`
-  font-size: 11px;
-  color: var(--notebook-green);
-  text-decoration: underline;
-  cursor: pointer;
-`;
-
-const LoginText = styled.p`
-  font-size: 14px;
-  text-align: center;
-  color: var(--notebook-secondary-color);
-`;
-
 const App: React.FC<{}> = () => {
   const [isLoggingIn, setIsLoggingIn] = React.useState(false);
   const [user, setUser] = React.useState<IUser>({ userID: "", email: "" });
@@ -132,3 +102,32 @@ document.body.appendChild(container);
 const root = createRoot(container!);
 root.render(<App />);
 
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "Roboto", sans-serif;
+  padding: 1rem 2rem;
+  height: 200px;
+  width: 300px;
+  color: var(--notebook-secondary-color);
+`;
+
+const Heading = styled.h1`
+  font-size: 18px;
+  text-align: center;
+`;
+
+const LearnMore = styled.a`
+  font-size: 11px;
+  color: var(--notebook-green);
+  text-decoration: underline;
+  cursor: pointer;
+`;
+
+const LoginText = styled.p`
+  font-size: 14px;
+  text-align: center;
+  color: var(--notebook-secondary-color);
+`;

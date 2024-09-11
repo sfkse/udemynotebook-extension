@@ -11,6 +11,22 @@ type TabsProps = {
   children?: React.ReactNode;
 };
 
+const Tabs = ({ children }: TabsProps) => {
+  return <TabsContainer>{children}</TabsContainer>;
+};
+
+const Tab = ({ title, activeTab, handleClick }: Tab) => {
+  return (
+    <TabItem onClick={handleClick} $isActive={activeTab === title}>
+      {title}
+    </TabItem>
+  );
+};
+
+Tabs.Tab = Tab;
+
+export default Tabs;
+
 const TabsContainer = styled.div`
   display: flex;
   justify-content: space-between;
@@ -33,20 +49,3 @@ const TabItem = styled.div<{ $isActive: boolean }>`
     background-color: var(--notebook-green);
   }
 `;
-
-const Tabs = ({ children }: TabsProps) => {
-  return <TabsContainer>{children}</TabsContainer>;
-};
-
-const Tab = ({ title, activeTab, handleClick }: Tab) => {
-  return (
-    <TabItem onClick={handleClick} $isActive={activeTab === title}>
-      {title}
-    </TabItem>
-  );
-};
-
-Tabs.Tab = Tab;
-
-export default Tabs;
-

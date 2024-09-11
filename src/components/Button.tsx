@@ -9,6 +9,25 @@ type ButtonProps = {
   handleClick: (e) => void;
 };
 
+export const Button: React.FC<ButtonProps> = ({
+  outlined,
+  title,
+  icon,
+  disabled,
+  handleClick,
+}) => {
+  return (
+    <ButtonContainer
+      disabled={disabled}
+      $isOutlined={outlined}
+      onClick={handleClick}
+    >
+      {icon && <img src={icon} alt="icon" />}
+      {title}
+    </ButtonContainer>
+  );
+};
+
 const ButtonContainer = styled.button<{ $isOutlined?: boolean }>`
   width: 100%;
   display: flex;
@@ -29,23 +48,3 @@ const ButtonContainer = styled.button<{ $isOutlined?: boolean }>`
     background-color: var(--notebook-light-green);
   }
 `;
-
-export const Button: React.FC<ButtonProps> = ({
-  outlined,
-  title,
-  icon,
-  disabled,
-  handleClick,
-}) => {
-  return (
-    <ButtonContainer
-      disabled={disabled}
-      $isOutlined={outlined}
-      onClick={handleClick}
-    >
-      {icon && <img src={icon} alt="icon" />}
-      {title}
-    </ButtonContainer>
-  );
-};
-

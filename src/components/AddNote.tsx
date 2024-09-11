@@ -10,59 +10,13 @@ import MarkButton from "./MarkButton";
 
 import { INote } from "../utils/types";
 import { HOTKEYS } from "../utils/editor";
-import { createNote } from "api/notes";
+import { createNote } from "../api/notes";
 
 type AddNoteProps = {
   courses: any[];
   userID: string;
   setIsAddingNote: React.Dispatch<React.SetStateAction<boolean>>;
 };
-
-const EditorContainer = styled.div`
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-`;
-
-const TitleInput = styled.input`
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 5px;
-  border: 1px solid #ddd;
-`;
-
-const CheckboxContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 3rem 0;
-`;
-
-const Checkbox = styled.input`
-  cursor: pointer;
-  background-color: var(--notebook-green);
-  border-radius: 5px;
-`;
-
-const CheckboxLabel = styled.label`
-  font-size: 14px;
-`;
-
-const ButtonContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-bottom: 20px;
-  width: 100%;
-`;
-
-const Toolbar = styled.div`
-  display: flex;
-  gap: 2px;
-  background-color: var(--notebook-primary-color);
-  margin: 2rem 0 1rem 0;
-`;
 
 const AddNote = ({ courses, userID, setIsAddingNote }: AddNoteProps) => {
   const [noteTitle, setNoteTitle] = useState("");
@@ -270,4 +224,50 @@ const AddNote = ({ courses, userID, setIsAddingNote }: AddNoteProps) => {
 };
 
 export default AddNote;
+
+const EditorContainer = styled.div`
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const TitleInput = styled.input`
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+`;
+
+const CheckboxContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 3rem 0;
+`;
+
+const Checkbox = styled.input`
+  cursor: pointer;
+  background-color: var(--notebook-green);
+  border-radius: 5px;
+`;
+
+const CheckboxLabel = styled.label`
+  font-size: 14px;
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 20px;
+  width: 100%;
+`;
+
+const Toolbar = styled.div`
+  display: flex;
+  gap: 2px;
+  background-color: var(--notebook-primary-color);
+  margin: 2rem 0 1rem 0;
+`;
 

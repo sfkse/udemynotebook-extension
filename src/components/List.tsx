@@ -13,6 +13,37 @@ type ListItemProps = {
   timestamp?: string;
 };
 
+const List = ({ children }: ListProps) => {
+  return <ListContainer>{children}</ListContainer>;
+};
+
+const ListItem = ({
+  title,
+  content,
+  timestamp,
+  options,
+  handleClick,
+}: ListItemProps) => {
+  if (content && content.length > 45) {
+    content = content.slice(0, 45) + "...";
+  }
+
+  return (
+    <ListItemContainer className="list-item-container" onClick={handleClick}>
+      <TitleWrapper>
+        {timestamp && <Timestamp>{timestamp}</Timestamp>}
+        {title && <Title>{title}</Title>}
+        {!title && <Content dangerouslySetInnerHTML={{ __html: content }} />}
+      </TitleWrapper>
+      {options}
+    </ListItemContainer>
+  );
+};
+
+List.Item = ListItem;
+
+export default List;
+
 const ListContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -60,35 +91,3 @@ const Content = styled.div`
 `;
 
 const Title = styled(Content)``;
-
-const List = ({ children }: ListProps) => {
-  return <ListContainer>{children}</ListContainer>;
-};
-
-const ListItem = ({
-  title,
-  content,
-  timestamp,
-  options,
-  handleClick,
-}: ListItemProps) => {
-  if (content && content.length > 45) {
-    content = content.slice(0, 45) + "...";
-  }
-
-  return (
-    <ListItemContainer className="list-item-container" onClick={handleClick}>
-      <TitleWrapper>
-        {timestamp && <Timestamp>{timestamp}</Timestamp>}
-        {title && <Title>{title}</Title>}
-        {!title && <Content dangerouslySetInnerHTML={{ __html: content }} />}
-      </TitleWrapper>
-      {options}
-    </ListItemContainer>
-  );
-};
-
-List.Item = ListItem;
-
-export default List;
-

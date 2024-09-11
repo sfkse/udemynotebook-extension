@@ -16,117 +16,6 @@ import useFetchCourses from "../hooks/useFetchCourses";
 import useFetchCourseNotes from "../hooks/useFetchCourseNotes";
 import { fetchSections } from "../utils/notes";
 
-// Drawer handle component
-const DrawerHandle = styled.div<{ $isOpen: boolean }>`
-  position: fixed;
-  top: 50%;
-  right: ${({ $isOpen }) =>
-    $isOpen ? "49rem" : "0px"}; /* Adjust this value based on drawer width */
-  transform: translateY(-50%);
-  width: 25px;
-  height: 44px;
-  background-color: var(--notebook-dark-primary-color);
-  border-radius: 5px 0px 0px 5px;
-  cursor: pointer;
-  z-index: 100000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: right 0.3s ease-in-out;
-  color: white;
-`;
-
-// Main container for the sliding drawer
-const DrawerContainer = styled.div<{ $isOpen: boolean }>`
-  position: fixed;
-  top: 10%;
-  right: ${({ $isOpen }) =>
-    $isOpen ? "0" : "-49rem"}; /* Adjust based on drawer width */
-  padding: 2rem;
-  z-index: 99999;
-  display: flex;
-  flex-direction: column;
-  height: 85vh;
-  width: 49rem;
-  border-radius: 0 10px 10px 0;
-  background-color: var(--notebook-dark-primary-color);
-  font-family: "Roboto", sans-serif;
-  transition: right 0.3s ease-in-out;
-`;
-
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 85vh;
-  width: 45rem;
-  border-radius: 10px;
-  background-color: var(--notebook-dark-primary-color);
-  font-family: "Roboto", sans-serif;
-  overflow-y: scroll;
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-  &::-webkit-scrollbar {
-    display: none;
-  }
-`;
-
-const LogoContainer = styled.div`
-  font-size: 16px;
-  margin-bottom: 20px;
-  font-weight: bold;
-`;
-
-const Logo = styled.img`
-  width: 30px;
-  margin-right: 10px;
-`;
-
-const OptionsWrapper = styled.div`
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: center;
-  img {
-    cursor: pointer;
-  }
-`;
-
-const ButtonContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  width: 100%;
-`;
-
-const TitleContainer = styled.div`
-  display: flex;
-  align-items: center;
-  margin-top: 28px;
-`;
-
-const Title = styled.div``;
-
-const BackButton = styled.span`
-  font-size: 16px;
-  line-height: 0.5;
-  padding: 5px;
-  margin-right: 8px;
-  border-radius: 3px;
-  background-color: var(--notebook-dark-secondary-color);
-  cursor: pointer;
-`;
-
-const LoginText = styled.p`
-  font-size: 14px;
-  text-align: center;
-  color: var(--notebook-secondary-color);
-`;
-
-const Image = styled.img`
-  width: 50%;
-  align-self: center;
-`;
 const App: React.FC<{}> = () => {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState(PAGES.allNotes);
@@ -382,3 +271,114 @@ document.body.appendChild(container);
 const root = createRoot(container!);
 root.render(<App />);
 
+// Drawer handle component
+const DrawerHandle = styled.div<{ $isOpen: boolean }>`
+  position: fixed;
+  top: 50%;
+  right: ${({ $isOpen }) =>
+    $isOpen ? "49rem" : "0px"}; /* Adjust this value based on drawer width */
+  transform: translateY(-50%);
+  width: 25px;
+  height: 44px;
+  background-color: var(--notebook-dark-primary-color);
+  border-radius: 5px 0px 0px 5px;
+  cursor: pointer;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: right 0.3s ease-in-out;
+  color: white;
+`;
+
+// Main container for the sliding drawer
+const DrawerContainer = styled.div<{ $isOpen: boolean }>`
+  position: fixed;
+  top: 10%;
+  right: ${({ $isOpen }) =>
+    $isOpen ? "0" : "-49rem"}; /* Adjust based on drawer width */
+  padding: 2rem;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  height: 85vh;
+  width: 49rem;
+  border-radius: 0 10px 10px 0;
+  background-color: var(--notebook-dark-primary-color);
+  font-family: "Roboto", sans-serif;
+  transition: right 0.3s ease-in-out;
+`;
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 85vh;
+  width: 45rem;
+  border-radius: 10px;
+  background-color: var(--notebook-dark-primary-color);
+  font-family: "Roboto", sans-serif;
+  overflow-y: scroll;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const LogoContainer = styled.div`
+  font-size: 16px;
+  margin-bottom: 20px;
+  font-weight: bold;
+`;
+
+const Logo = styled.img`
+  width: 30px;
+  margin-right: 10px;
+`;
+
+const OptionsWrapper = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  img {
+    cursor: pointer;
+  }
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  width: 100%;
+`;
+
+const TitleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin-top: 28px;
+`;
+
+const Title = styled.div``;
+
+const BackButton = styled.span`
+  font-size: 16px;
+  line-height: 0.5;
+  padding: 5px;
+  margin-right: 8px;
+  border-radius: 3px;
+  background-color: var(--notebook-dark-secondary-color);
+  cursor: pointer;
+`;
+
+const LoginText = styled.p`
+  font-size: 14px;
+  text-align: center;
+  color: var(--notebook-secondary-color);
+`;
+
+const Image = styled.img`
+  width: 50%;
+  align-self: center;
+`;
