@@ -17,8 +17,10 @@
     "css-loader": "^5.2.4",
     "fontsource-roboto": "^4.0.0",
     "html-webpack-plugin": "^4.5.2",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "slate": "^0.103.0",
+    "slate-react": "^0.110.0",
     "style-loader": "^2.0.0",
     "styled-components": "^6.1.12",
     "terser-webpack-plugin": "^5.1.1",
@@ -30,6 +32,7 @@
   },
   "dependencies": {
     "html2canvas": "^1.4.1",
-    "react-quill": "^2.0.0"
+    "is-hotkey": "^0.2.0",
+    "slate-history": "^0.109.0"
   }
 }

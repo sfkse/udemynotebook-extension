@@ -12,12 +12,13 @@ export interface ICourse {
 }
 
 export interface INote {
-  idnotes: string;
+  idnotes?: string;
+  title: string;
   content: string;
-  createdAt: number;
-  idlectures: string;
+  idcourses: string;
   isPublic: boolean;
   timestamp: string;
-  section: string;
+  lecture: string;
+  idusers: string;
 }
 

@@ -1,5 +1,3 @@
-@import "react-quill/dist/quill.snow.css";
-
 :root {
   --notebook-dark-primary-color: rgba(17, 24, 39, 1);
   --notebook-dark-secondary-color: rgba(31, 41, 55, 1);
@@ -16,19 +14,18 @@ body {
   padding: 0;
 }
 
-.quill {
-  background-color: var(--notebook-secondary-color) !important;
-  color: var(--notebook-dark-primary-color) !important;
+#slate-editor {
+  position: relative;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  height: 300px;
+  background-color: var(--notebook-secondary-color);
+  color: var(--notebook-dark-primary-color);
+  padding: 1rem;
+  border-radius: 5px;
 }
 
-.ql-container {
-  height: 200px;
-  border: none;
-  border-radius: 0;
-  background-color: var(--notebook-secondary-color) !important;
-}
-
-.ql-editor {
-  height: 100%;
+[data-slate-placeholder] {
+  padding-top: 11px;
 }
 

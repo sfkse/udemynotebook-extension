@@ -6,7 +6,7 @@ type ButtonProps = {
   outlined?: boolean;
   icon?: string;
   disabled?: boolean;
-  handleClick: () => void;
+  handleClick: (e) => void;
 };
 
 const ButtonContainer = styled.button<{ $isOutlined?: boolean }>`

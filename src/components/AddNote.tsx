@@ -1,14 +1,27 @@
-import React from "react";
-import ReactQuill from "react-quill";
+import React, { useCallback, useState } from "react";
+import { createEditor, Editor, Descendant } from "slate";
+import { Editable, Slate, withReact } from "slate-react";
+import isHotkey from "is-hotkey";
 import styled from "styled-components";
+
 import { Button } from "./Button";
-import { NOTES, Note } from "../utils/data";
+import { Element, Leaf } from "./EditorBlocks";
+import MarkButton from "./MarkButton";
+
+import { INote } from "../utils/types";
+import { HOTKEYS } from "../utils/editor";
+import { createNote } from "api/notes";
+
+type AddNoteProps = {
+  courses: any[];
+  userID: string;
+  setIsAddingNote: React.Dispatch<React.SetStateAction<boolean>>;
+};
 
 const EditorContainer = styled.div`
   margin-top: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 `;
 
 const TitleInput = styled.input`
@@ -22,7 +35,7 @@ const CheckboxContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 10px 0;
+  margin: 3rem 0;
 `;
 
 const Checkbox = styled.input`
@@ -44,84 +57,115 @@ const ButtonContainer = styled.div`
   width: 100%;
 `;
 
-const AddNote = ({ isAddingNote, setIsAddingNote }) => {
-  const [noteTitle, setNoteTitle] = React.useState("");
-  const [noteContent, setNoteContent] = React.useState("");
-  const [isPublic, setIsPublic] = React.useState(false);
+const Toolbar = styled.div`
+  display: flex;
+  gap: 2px;
+  background-color: var(--notebook-primary-color);
+  margin: 2rem 0 1rem 0;
+`;
 
-  const handleSaveNote = () => {
+const AddNote = ({ courses, userID, setIsAddingNote }: AddNoteProps) => {
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteContent, setNoteContent] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [editor] = useState(() => withReact(createEditor()));
+  const renderElement = useCallback((props) => <Element {...props} />, []);
+  const renderLeaf = useCallback((props) => <Leaf {...props} />, []);
+  const initialValue: Descendant[] = [
+    {
+      type: "paragraph",
+      children: [
+        { text: "This is editable " },
+        { text: "rich", bold: true },
+        { text: " text, " },
+        { text: "much", italic: true },
+        { text: " better than a " },
+        { text: "<textarea>", code: true },
+        { text: "!" },
+      ],
+    },
+  ];
+
+  const handleSaveNote = async (e) => {
+    e.preventDefault();
     // Get element with the attribute data-purpose="current-time"
     const currentTimeElement = document.querySelector(
       '[data-purpose="current-time"]'
     );
     const currentTime = currentTimeElement?.textContent;
     // Save the note
-    const newNote: Note = {
-      id: NOTES.length + 1,
+    const newNote: INote = {
       title: noteTitle,
       content: noteContent,
       isPublic,
-      lectureID: 3,
+      idcourses: getCourseId(),
+      idusers: userID,
+      lecture: getLectureName(),
       timestamp: currentTime,
     };
     console.log(newNote);
-    NOTES.push(newNote);
-    setIsAddingNote(false);
-    setNoteTitle("");
-    setNoteContent("");
-  };
 
-  const handleTakeSnapshot = () => {
-    // Option 1
-    // Get the video element from the page
-    const video = document.querySelector("video");
-
-    if (video && video.readyState >= video.HAVE_ENOUGH_DATA) {
-      // Create a canvas element
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      // Draw the current video frame onto the canvas
-      const context = canvas.getContext("2d");
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Convert the canvas to a data URL (image)
-      const dataURL = canvas.toDataURL("image/png");
-
-      // Create a link to download the image
-      const link = document.createElement("a");
-      link.href = dataURL;
-      link.download = "snapshot.png";
-      link.click();
-    } else {
-      console.error("No video element found!");
+    try {
+      setIsSaving(true);
+      await createNote(newNote);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+      setIsAddingNote(false);
+      setNoteTitle("");
+      setNoteContent("");
     }
-    // Option 2
-    // const canvas = document.createElement("canvas");
-    // const context = canvas.getContext("2d");
-    // const video = document.createElement("video");
-
-    // try {
-    //   const captureStream = await navigator.mediaDevices.getDisplayMedia();
-    //   video.srcObject = captureStream;
-    //   context.drawImage(video, 0, 0, video.width, video.height);
-    //   const frame = canvas.toDataURL("image/png");
-    //   captureStream.getTracks().forEach((track) => track.stop());
-    //   window.location.href = frame;
-    // } catch (err) {
-    //   console.error("Error: " + err);
-    // Option 3
-    // let video = document.querySelector("video");
-
-    // // Use the html2canvas
-    // // function to take a screenshot
-    // // and append it
-    // html2canvas(video).then(function (canvas) {
-    //   document.getElementById("output").appendChild(canvas);
-    // });
   };
 
+  const getCourseId = () => {
+    const courseName = document.querySelector(
+      '[class*="curriculum-item-view--course-title"]'
+    )?.textContent;
+    console.log(courseName, courses);
+    // Find the course in the courses array
+    const course = courses.find((course) => course.title === courseName);
+    if (!course) {
+      return "";
+    }
+
+    return course.idcourses;
+  };
+
+  const getLectureName = () => {
+    // Step 1: Find all elements that have a class matching "curriculum-item-link--is-current"
+    const currentItems = document.querySelectorAll(
+      '[class*="curriculum-item-link--is-current"]'
+    );
+    let text = "";
+    // Step 2: Iterate over the found items to find the text "13. Chrome Notifications API"
+    currentItems.forEach((item) => {
+      // Step 3: Find the nested element containing the title using 'data-purpose' attribute
+      const titleElement = item.querySelector('[data-purpose="item-title"]');
+      text = titleElement.textContent.trim();
+    });
+
+    return text;
+  };
+
+  const toggleMark = (editor, format) => {
+    const isActive = isMarkActive(editor, format);
+
+    if (isActive) {
+      Editor.removeMark(editor, format);
+    } else {
+      Editor.addMark(editor, format, true);
+    }
+  };
+
+  const isMarkActive = (editor, format) => {
+    const marks = Editor.marks(editor);
+    return marks ? marks[format] === true : false;
+  };
+
+  console.log(noteContent);
   return (
     <EditorContainer>
       <TitleInput
@@ -130,33 +174,80 @@ const AddNote = ({ isAddingNote, setIsAddingNote }) => {
         value={noteTitle}
         onChange={(e) => setNoteTitle(e.target.value)}
       />
-      <ReactQuill
-        value={noteContent}
-        onChange={setNoteContent}
-        placeholder="Write your note here..."
-        modules={{
-          toolbar: [
-            [{ header: "1" }, { header: "2" }],
-            [
-              "bold",
-              "italic",
-              "underline",
-              "strike",
-              "blockquote",
-              "code-block",
-            ],
-            [
-              { list: "ordered" },
-              { list: "bullet" },
-              { indent: "-1" },
-              { indent: "+1" },
-            ],
-            ["link", "image"],
-            ["clean"],
-          ],
-        }}
-      />
-      <div id="output"></div>
+      <Slate
+        editor={editor}
+        initialValue={initialValue}
+        onChange={(value) => setNoteContent(JSON.stringify(value))}
+      >
+        <Toolbar>
+          <MarkButton
+            toggleMark={toggleMark}
+            format="bold"
+            icon="https://iili.io/dUku4l2.png"
+          />
+          <MarkButton
+            toggleMark={toggleMark}
+            format="italic"
+            icon="https://iili.io/dUkOpqv.png"
+          />
+          <MarkButton
+            toggleMark={toggleMark}
+            format="underline"
+            icon="https://iili.io/dUk4HOl.png"
+          />
+          <MarkButton
+            toggleMark={toggleMark}
+            format="code"
+            icon="https://iili.io/dUkDyEQ.png"
+          />
+        </Toolbar>
+        <Editable
+          id="slate-editor"
+          style={{ padding: "1rem" }}
+          renderElement={renderElement}
+          renderLeaf={renderLeaf}
+          placeholder="Write your note here..."
+          autoFocus
+          onChange={(value) => {
+            const isAstChange = editor.operations.some(
+              (op) => "set_selection" !== op.type
+            );
+            if (isAstChange) {
+              // Save the value to Local Storage.
+              // const content = JSON.stringify(value);
+              // localStorage.setItem("content", content);
+            }
+          }}
+          onKeyDown={(event) => {
+            // if (!event.ctrlKey) {
+            //   return;
+            // }
+
+            // switch (event.key) {
+            //   // When "`" is pressed, keep our existing code block logic.
+            //   case "`": {
+            //     event.preventDefault();
+            //     CustomEditor.toggleCodeBlock(editor);
+            //     break;
+            //   }
+
+            //   // When "B" is pressed, bold the text in the selection.
+            //   case "b": {
+            //     event.preventDefault();
+            //     CustomEditor.toggleBoldMark(editor);
+            //     break;
+            //   }
+            // }
+            for (const hotkey in HOTKEYS) {
+              if (isHotkey(hotkey, event as any)) {
+                event.preventDefault();
+                const mark = HOTKEYS[hotkey];
+                toggleMark(editor, mark);
+              }
+            }
+          }}
+        />
+      </Slate>
       <CheckboxContainer>
         <Checkbox
           id="private"
@@ -172,7 +263,7 @@ const AddNote = ({ isAddingNote, setIsAddingNote }) => {
           title="Cancel"
           handleClick={() => setIsAddingNote(false)}
         />
-        <Button title="Save" handleClick={handleSaveNote} />
+        <Button title="Save" handleClick={handleSaveNote} disabled={isSaving} />
       </ButtonContainer>
     </EditorContainer>
   );

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 
 import "fontsource-roboto";
 import "./contentScript.css";
@@ -243,7 +243,8 @@ const App: React.FC<{}> = () => {
               </ButtonContainer>
               {isAddingNote ? (
                 <AddNote
-                  isAddingNote={isAddingNote}
+                  courses={courses}
+                  userID={loggedInUser}
                   setIsAddingNote={setIsAddingNote}
                 />
               ) : (
@@ -376,7 +377,8 @@ const App: React.FC<{}> = () => {
   );
 };
 
-const root = document.createElement("div");
-document.body.appendChild(root);
-ReactDOM.render(<App />, root);
+const container = document.createElement("div");
+document.body.appendChild(container);
+const root = createRoot(container!);
+root.render(<App />);
 

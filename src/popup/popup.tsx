@@ -1,12 +1,12 @@
 import React, { useEffect } from "react";
-import ReactDOM from "react-dom";
-
+import { createRoot } from "react-dom/client";
 import "fontsource-roboto";
 import styled from "styled-components";
 import { Button } from "../components/Button";
 import "./popup.css";
 import { IUser } from "../utils/types";
-import { API_URL } from "../utils/config";
+import { getUserProfileInfo } from "../api/user";
+import { authenticateUser } from "api/auth";
 
 const Container = styled.div`
   display: flex;
@@ -59,13 +59,7 @@ const App: React.FC<{}> = () => {
             response.token
           );
           // Save user info db
-          const res = await fetch(`${API_URL}/users/auth`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ googleID, email }),
-          });
+          const res = await authenticateUser(googleID, email);
 
           if (!res.ok) {
             alert("Something went wrong. Please try again.");
@@ -105,17 +99,7 @@ const App: React.FC<{}> = () => {
   };
 
   function fetchUserProfile(token) {
-    return fetch("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((userInfo) => userInfo)
-      .catch((error) => {
-        console.error("Error fetching user info:", error);
-      });
+    return getUserProfileInfo(token);
   }
 
   return (
@@ -143,7 +127,8 @@ const App: React.FC<{}> = () => {
   );
 };
 
-const root = document.createElement("div");
-document.body.appendChild(root);
-ReactDOM.render(<App />, root);
+const container = document.createElement("div");
+document.body.appendChild(container);
+const root = createRoot(container!);
+root.render(<App />);
 
