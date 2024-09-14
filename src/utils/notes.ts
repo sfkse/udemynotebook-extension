@@ -13,18 +13,24 @@ export const fetchSections = (courseNotes: INote[]) => {
   return sections;
 };
 
-export const getLectureName = () => {
-  // Step 1: Find all elements that have a class matching "curriculum-item-link--is-current"
+export const getLectureName = (noteToEdit: INote | null = null) => {
+  if (noteToEdit) {
+    // If we're editing a note, return the lecture name from the note
+    return noteToEdit.lecture;
+  }
+
+  // If we're adding a new note, use the existing logic to get the lecture name from the DOM
   const currentItems = document.querySelectorAll(
     '[class*="curriculum-item-link--is-current"]'
   );
   let text = "";
-  // Step 2: Iterate over the found items to find the text "13. Chrome Notifications API"
   currentItems.forEach((item) => {
-    // Step 3: Find the nested element containing the title using 'data-purpose' attribute
     const titleElement = item.querySelector('[data-purpose="item-title"]');
-    text = titleElement.textContent.trim();
+    if (titleElement) {
+      text = titleElement.textContent?.trim() || "";
+    }
   });
 
   return text;
 };
+

@@ -30,7 +30,7 @@ const ListItem = ({
 
   return (
     <ListItemContainer className="list-item-container" onClick={handleClick}>
-      <TitleWrapper>
+      <TitleWrapper $hasOptions={options}>
         {timestamp && <Timestamp>{timestamp}</Timestamp>}
         {title && <Title>{title}</Title>}
         {!title && <Content dangerouslySetInnerHTML={{ __html: content }} />}
@@ -77,17 +77,16 @@ const Timestamp = styled.div`
   /* color: var(--notebook-gray); */
 `;
 
-const TitleWrapper = styled.div`
+const TitleWrapper = styled.div<{ $hasOptions: React.ReactNode }>`
   display: flex;
   align-items: center;
-  width: 100%;
+  width: ${({ $hasOptions }) => ($hasOptions ? "80%" : "100%")};
 `;
 
 const Content = styled.div`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 90%; /* Adjust as necessary */
 `;
 
 const Title = styled(Content)``;

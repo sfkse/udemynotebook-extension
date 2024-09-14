@@ -11,87 +11,115 @@ import MarkButton from "./MarkButton";
 
 import { INote } from "../utils/types";
 import { HOTKEYS } from "../utils/editor";
-import { createNote } from "../api/notes";
+import { createNote, getLectureNotes } from "../api/notes";
 import { getLectureName } from "../utils/notes";
 
 type AddNoteProps = {
   courses: any[];
   userID: string;
   setIsAddingNote: React.Dispatch<React.SetStateAction<boolean>>;
+  isNoteDetailPage: boolean;
+  setIsNoteDetailPage: React.Dispatch<React.SetStateAction<boolean>>;
+  noteToEdit?: INote | null;
+  onUpdateNote: (note: INote) => Promise<void>;
+  onComplete: () => void;
 };
 
-const AddNote = ({ courses, userID, setIsAddingNote }: AddNoteProps) => {
-  const [noteTitle, setNoteTitle] = useState("");
-  const [noteContent, setNoteContent] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+const AddNote = ({
+  courses,
+  userID,
+  setIsAddingNote,
+  isNoteDetailPage,
+  setIsNoteDetailPage,
+  noteToEdit,
+  onUpdateNote,
+  onComplete,
+}: AddNoteProps) => {
+  const [noteTitle, setNoteTitle] = useState(noteToEdit?.title || "");
+  const [noteContent, setNoteContent] = useState(noteToEdit?.content || "");
+  const [isPublic, setIsPublic] = useState(noteToEdit?.isPublic || false);
   const [isSaving, setIsSaving] = useState(false);
 
   const [editor] = useState(() => withHistory(withReact(createEditor())));
   const renderElement = useCallback((props) => <Element {...props} />, []);
   const renderLeaf = useCallback((props) => <Leaf {...props} />, []);
-  const initialValue: Descendant[] = [
-    {
-      type: "paragraph",
-      children: [
-        { text: "This is editable " },
-        { text: "rich", bold: true },
-        { text: " text, " },
-        { text: "much", italic: true },
-        { text: " better than a " },
-        { text: "<textarea>", code: true },
-        { text: "!" },
-      ],
-    },
-  ];
+  const initialValue: Descendant[] = noteToEdit
+    ? JSON.parse(noteToEdit.content)
+    : [
+        {
+          type: "paragraph",
+          children: [{ text: "" }],
+        },
+      ];
+
+  const getCourseId = useCallback(async () => {
+    if (noteToEdit) {
+      // If in edit mode, return the course ID from the note being edited
+      return noteToEdit.idcourses;
+    } else {
+      // If in add mode, get the current lecture name and find a note with this lecture
+      const lectureName = getLectureName();
+
+      try {
+        // Assuming you have a function to get notes by lecture name
+        const lectureNotes = await getLectureNotes(lectureName, userID);
+
+        if (lectureNotes.length > 0) {
+          // Return the course ID from the first note with this lecture name
+          return lectureNotes[0].idcourses;
+        } else {
+          // If no notes found for this lecture, fall back to the original method
+          const courseName = document
+            .querySelector(
+              'li[class*="curriculum-item-link--is-current-"] span[data-purpose="item-title"]'
+            )
+            ?.textContent?.trim();
+
+          if (courseName) {
+            const course = courses.find((c) => c.title === courseName);
+            return course ? course.idcourses : "";
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching lecture notes:", error);
+      }
+    }
+
+    return ""; // Return empty string if no course ID could be determined
+  }, [noteToEdit, courses, userID]);
 
   const handleSaveNote = async (e) => {
     e.preventDefault();
-    // Get element with the attribute data-purpose="current-time"
     const currentTimeElement = document.querySelector(
       '[data-purpose="current-time"]'
     );
     const currentTime = currentTimeElement?.textContent;
-    // Save the note
+
+    const courseId = await getCourseId();
+
     const newNote: INote = {
       title: noteTitle,
       content: noteContent,
       isPublic,
-      idcourses: getCourseId(),
+      idcourses: courseId,
       idusers: userID,
-      lecture: getLectureName(),
+      lecture: getLectureName(noteToEdit),
       timestamp: currentTime,
     };
     console.log(newNote);
-
     try {
       setIsSaving(true);
-      await createNote(newNote);
+      if (noteToEdit) {
+        await onUpdateNote({ ...newNote, idnotes: noteToEdit.idnotes });
+      } else {
+        await createNote(newNote);
+      }
+      onComplete();
     } catch (error) {
       console.error(error);
     } finally {
       setIsSaving(false);
-      setIsAddingNote(false);
-      setNoteTitle("");
-      setNoteContent("");
     }
-  };
-
-  const getCourseId = () => {
-    let courseName = "";
-    const lectureElement = document.querySelector(
-      'li[class*="curriculum-item-link--is-current-"] span[data-purpose="item-title"]'
-    );
-    if (lectureElement) {
-      courseName = lectureElement.textContent.trim();
-    }
-    // Find the course in the courses array
-    console.log("courseName", courseName);
-    const course = courses.find((course) => course.title === courseName);
-    if (!course) {
-      return "";
-    }
-
-    return course.idcourses;
   };
 
   const toggleMark = (editor, format) => {
@@ -202,12 +230,12 @@ const AddNote = ({ courses, userID, setIsAddingNote }: AddNoteProps) => {
         <CheckboxLabel htmlFor="private">Visible to everyone</CheckboxLabel>
       </CheckboxContainer>
       <ButtonContainer>
+        <Button outlined title="Cancel" handleClick={onComplete} />
         <Button
-          outlined
-          title="Cancel"
-          handleClick={() => setIsAddingNote(false)}
+          title={noteToEdit ? "Update" : "Save"}
+          handleClick={handleSaveNote}
+          disabled={isSaving}
         />
-        <Button title="Save" handleClick={handleSaveNote} disabled={isSaving} />
       </ButtonContainer>
     </EditorContainer>
   );

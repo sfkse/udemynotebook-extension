@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import styled from "styled-components";
 import "fontsource-roboto";
@@ -9,6 +9,7 @@ import { Button } from "../components/Button";
 import SubTabs from "../components/SubTabs";
 import NoteOptions from "../components/NoteOptions";
 import AddNote from "../components/AddNote";
+import PageTitle from "../components/PageTitle";
 
 import { PAGES } from "../utils/data";
 import { INote } from "../utils/types";
@@ -17,9 +18,10 @@ import { fetchSections, getLectureName } from "../utils/notes";
 import useFetchCourses from "../hooks/useFetchCourses";
 import useFetchCourseNotes from "../hooks/useFetchCourseNotes";
 
-import { getLectureNotes } from "../api/notes";
+import { getLectureNotes, updateNote, deleteNote } from "../api/notes";
 
 import "./contentScript.css";
+
 const App: React.FC<{}> = () => {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState(PAGES.allNotes);
@@ -34,6 +36,9 @@ const App: React.FC<{}> = () => {
   const [displayedSectionNotes, setDisplayedSectionNotes] = React.useState<
     INote[]
   >([]);
+
+  const [isNoteDetailPage, setIsNoteDetailPage] = React.useState(false);
+  const [noteToEdit, setNoteToEdit] = React.useState<INote | null>(null);
 
   const { courses, isFetchingCourses } = useFetchCourses();
   const { courseNotes, isFetchingCourseNotes, fetchCourseNotes } =
@@ -90,6 +95,7 @@ const App: React.FC<{}> = () => {
         const notes = await getLectureNotes(lectureName, loggedInUser);
         setDisplayedSectionNotes(notes);
         setSelectedSection(lectureName);
+        setIsOutsideOfLecture(false);
       }
     }
     setActiveTab(tab);
@@ -105,6 +111,7 @@ const App: React.FC<{}> = () => {
     setShowCourseSections(true);
     const course = courses.find((course) => course.idcourses === courseID);
     setSelectedCourse(course.title);
+    setIsOutsideOfLecture(false);
   };
 
   const handleClickSection = (section: INote) => {
@@ -114,26 +121,85 @@ const App: React.FC<{}> = () => {
     setDisplayedSectionNotes(notes);
     setActiveTab(PAGES.lectureNotes);
     setSelectedSection(section.lecture);
+    setIsOutsideOfLecture(false);
   };
 
-  const handleClickNote = (note: string) => {
-    console.log(note);
+  const handleClickNote = (note: INote) => {
+    setNoteToEdit(note);
+    setIsNoteDetailPage(true);
+    setIsAddingNote(true);
   };
 
-  const fetchCourseOptions = (id: string) => {
+  const handleUpdateNote = useCallback(
+    async (updatedNote: INote) => {
+      try {
+        await updateNote(updatedNote);
+        // Refresh the notes list after updating
+        if (activeTab === PAGES.lectureNotes) {
+          const updatedNotes = await getLectureNotes(
+            selectedSection,
+            loggedInUser
+          );
+          setDisplayedSectionNotes(updatedNotes);
+        } else if (selectedCourse) {
+          await fetchCourseNotes(selectedCourse, loggedInUser);
+        }
+      } catch (error) {
+        console.error("Error updating note:", error);
+      }
+    },
+    [activeTab, selectedSection, loggedInUser, selectedCourse, fetchCourseNotes]
+  );
+
+  const handleDeleteNote = useCallback(
+    async (e: React.MouseEvent<HTMLDivElement>, noteId: string) => {
+      e.stopPropagation();
+      if (window.confirm("Are you sure you want to delete this note?")) {
+        try {
+          await deleteNote(noteId);
+          // Refresh the notes list after deleting
+          if (activeTab === PAGES.lectureNotes) {
+            const updatedNotes = await getLectureNotes(
+              selectedSection,
+              loggedInUser
+            );
+            setDisplayedSectionNotes(updatedNotes);
+          } else if (selectedCourse) {
+            await fetchCourseNotes(selectedCourse, loggedInUser);
+          }
+        } catch (error) {
+          console.error("Error deleting note:", error);
+        }
+      }
+    },
+    [activeTab, selectedSection, loggedInUser, selectedCourse, fetchCourseNotes]
+  );
+
+  const handleAddNoteComplete = useCallback(() => {
+    setIsAddingNote(false);
+    setIsNoteDetailPage(false);
+    setNoteToEdit(null);
+  }, []);
+
+  const fetchSectionOptions = (lectureName: string) => {
+    const sectionNotes = courseNotes.filter(
+      (note: INote) => note.lecture === lectureName
+    );
+
     return (
-      <OptionsWrapper>
-        {/* <img src="https://iili.io/dwmAbZg.png" alt="delete" title="Delete" /> */}
-        12 notes
-      </OptionsWrapper>
+      <OptionsWrapper>{`${sectionNotes.length} ${
+        sectionNotes.length === 1 ? "note" : "notes"
+      }`}</OptionsWrapper>
     );
   };
 
-  const fetchNoteOptions = (noteID: string) => {
-    const note = courseNotes.find((note: INote) => note.idnotes === noteID);
+  const fetchNoteOptions = (note: INote) => {
     return (
       <OptionsWrapper>
-        <NoteOptions isPublic={note?.isPublic} />
+        <NoteOptions
+          isPublic={note.isPublic}
+          onDelete={(e) => handleDeleteNote(e, note.idnotes)}
+        />
       </OptionsWrapper>
     );
   };
@@ -169,11 +235,16 @@ const App: React.FC<{}> = () => {
                   />
                 )}
               </ButtonContainer>
-              {isAddingNote ? (
+              {isAddingNote || isNoteDetailPage ? (
                 <AddNote
+                  isNoteDetailPage={isNoteDetailPage}
+                  setIsNoteDetailPage={setIsNoteDetailPage}
                   courses={courses}
                   userID={loggedInUser}
                   setIsAddingNote={setIsAddingNote}
+                  noteToEdit={noteToEdit}
+                  onUpdateNote={handleUpdateNote}
+                  onComplete={handleAddNoteComplete}
                 />
               ) : (
                 <>
@@ -196,14 +267,10 @@ const App: React.FC<{}> = () => {
                   </Tabs>
                   {activeTab === PAGES.lectureNotes && !isOutsideOfLecture && (
                     <>
-                      <TitleContainer>
-                        <BackButton
-                          onClick={() => setActiveTab(PAGES.allNotes)}
-                        >
-                          &lsaquo;
-                        </BackButton>
-                        <Title title={selectedSection}>{selectedSection}</Title>
-                      </TitleContainer>
+                      <PageTitle
+                        handleBackClick={() => setActiveTab(PAGES.allNotes)}
+                        selectedSection={selectedSection}
+                      />
                       <SubTabs>
                         <SubTabs.Tab
                           handleClick={() => setSubTab("My notes")}
@@ -228,24 +295,21 @@ const App: React.FC<{}> = () => {
                           <>
                             {showCourseSections ? (
                               <>
-                                <TitleContainer>
-                                  <BackButton
-                                    onClick={() => {
-                                      setActiveTab(PAGES.allNotes);
-                                      setShowCourseSections(false);
-                                    }}
-                                  >
-                                    &lsaquo;
-                                  </BackButton>
-                                  <Title title={selectedCourse}>
-                                    {selectedCourse}
-                                  </Title>
-                                </TitleContainer>
+                                <PageTitle
+                                  handleBackClick={() => {
+                                    setActiveTab(PAGES.allNotes);
+                                    setShowCourseSections(false);
+                                  }}
+                                  selectedSection={selectedCourse}
+                                />
+
                                 {fetchSections(courseNotes).map((section) => (
                                   <List.Item
                                     key={section.idnotes}
                                     title={section.lecture}
-                                    options={null}
+                                    options={fetchSectionOptions(
+                                      section.lecture
+                                    )}
                                     handleClick={() =>
                                       handleClickSection(section)
                                     }
@@ -283,10 +347,8 @@ const App: React.FC<{}> = () => {
                                   key={note.idnotes}
                                   timestamp={note.timestamp}
                                   content={extractPlainText(note.content)}
-                                  options={fetchNoteOptions(note.idnotes)}
-                                  handleClick={() =>
-                                    handleClickCourse(note.idcourses)
-                                  }
+                                  options={fetchNoteOptions(note)}
+                                  handleClick={() => handleClickNote(note)}
                                 />
                               ))
                             ) : (
@@ -407,24 +469,6 @@ const ButtonContainer = styled.div`
   justify-content: center;
   margin-bottom: 20px;
   width: 100%;
-`;
-
-const TitleContainer = styled.div`
-  display: flex;
-  align-items: center;
-  margin-top: 28px;
-`;
-
-const Title = styled.div``;
-
-const BackButton = styled.span`
-  font-size: 16px;
-  line-height: 0.5;
-  padding: 5px;
-  margin-right: 8px;
-  border-radius: 3px;
-  background-color: var(--notebook-dark-secondary-color);
-  cursor: pointer;
 `;
 
 const LoginText = styled.p`
