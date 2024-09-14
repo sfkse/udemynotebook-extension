@@ -1,21 +1,25 @@
 import React, { useEffect } from "react";
 import { createRoot } from "react-dom/client";
-
-import "fontsource-roboto";
-import "./contentScript.css";
 import styled from "styled-components";
+import "fontsource-roboto";
+
 import Tabs from "../components/Tabs";
 import List from "../components/List";
-import { PAGES } from "../utils/data";
 import { Button } from "../components/Button";
 import SubTabs from "../components/SubTabs";
 import NoteOptions from "../components/NoteOptions";
 import AddNote from "../components/AddNote";
+
+import { PAGES } from "../utils/data";
 import { INote } from "../utils/types";
+import { fetchSections, getLectureName } from "../utils/notes";
+
 import useFetchCourses from "../hooks/useFetchCourses";
 import useFetchCourseNotes from "../hooks/useFetchCourseNotes";
-import { fetchSections } from "../utils/notes";
 
+import { getLectureNotes } from "../api/notes";
+
+import "./contentScript.css";
 const App: React.FC<{}> = () => {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState(PAGES.allNotes);
@@ -24,16 +28,21 @@ const App: React.FC<{}> = () => {
   const [loggedInUser, setLoggedInUser] = React.useState<string>(null);
 
   const [showCourseSections, setShowCourseSections] = React.useState(false);
+  const [isOutsideOfLecture, setIsOutsideOfLecture] = React.useState(false);
   const [selectedCourse, setSelectedCourse] = React.useState<string>(null);
+  const [selectedSection, setSelectedSection] = React.useState<string>(null);
+  const [displayedSectionNotes, setDisplayedSectionNotes] = React.useState<
+    INote[]
+  >([]);
 
   const { courses, isFetchingCourses } = useFetchCourses();
   const { courseNotes, isFetchingCourseNotes, fetchCourseNotes } =
     useFetchCourseNotes();
 
-  const displayedCourseNotes =
+  const sortedNotes =
     subTab === "My notes"
-      ? courseNotes.filter((note) => !note.isPublic)
-      : courseNotes.filter((note) => note.isPublic);
+      ? displayedSectionNotes.filter((note) => !note.isPublic)
+      : displayedSectionNotes.filter((note) => note.isPublic);
 
   useEffect(() => {
     chrome.storage.sync.get(["userID", "email"], (result) => {
@@ -72,7 +81,17 @@ const App: React.FC<{}> = () => {
     setIsDrawerOpen((prevState) => !prevState);
   };
 
-  const handleTabSelect = (tab: string) => {
+  const handleTabSelect = async (tab: string) => {
+    if (tab === PAGES.lectureNotes) {
+      const lectureName = getLectureName();
+      if (!lectureName) {
+        setIsOutsideOfLecture(true);
+      } else {
+        const notes = await getLectureNotes(lectureName, loggedInUser);
+        setDisplayedSectionNotes(notes);
+        setSelectedSection(lectureName);
+      }
+    }
     setActiveTab(tab);
     setShowCourseSections(false);
   };
@@ -87,13 +106,21 @@ const App: React.FC<{}> = () => {
     const course = courses.find((course) => course.idcourses === courseID);
     setSelectedCourse(course.title);
   };
-  console.log(courseNotes);
+
+  const handleClickSection = (section: INote) => {
+    const notes = courseNotes.filter(
+      (note) => note.lecture === section.lecture
+    );
+    setDisplayedSectionNotes(notes);
+    setActiveTab(PAGES.lectureNotes);
+    setSelectedSection(section.lecture);
+  };
 
   const handleClickNote = (note: string) => {
     console.log(note);
   };
 
-  const fetchLectureOptions = (id: string) => {
+  const fetchCourseOptions = (id: string) => {
     return (
       <OptionsWrapper>
         {/* <img src="https://iili.io/dwmAbZg.png" alt="delete" title="Delete" /> */}
@@ -109,6 +136,18 @@ const App: React.FC<{}> = () => {
         <NoteOptions isPublic={note?.isPublic} />
       </OptionsWrapper>
     );
+  };
+
+  const extractPlainText = (content: string): string => {
+    try {
+      const parsedContent = JSON.parse(content);
+      return parsedContent
+        .map((node) => node.children.map((child) => child.text).join(""))
+        .join("\n");
+    } catch (error) {
+      console.error("Error parsing note content:", error);
+      return content; // Return original content if parsing fails
+    }
   };
 
   return (
@@ -141,21 +180,21 @@ const App: React.FC<{}> = () => {
                   <Tabs>
                     <Tabs.Tab
                       handleClick={() => handleTabSelect(PAGES.allNotes)}
-                      title="All Notes"
+                      title={PAGES.allNotes}
                       activeTab={activeTab}
                     />
                     <Tabs.Tab
                       handleClick={() => handleTabSelect(PAGES.lectureNotes)}
-                      title="Lecture Notes"
+                      title={PAGES.lectureNotes}
                       activeTab={activeTab}
                     />
                     <Tabs.Tab
                       handleClick={() => handleTabSelect(PAGES.settings)}
-                      title="Settings"
+                      title={PAGES.settings}
                       activeTab={activeTab}
                     />
                   </Tabs>
-                  {activeTab === "Lecture Notes" && (
+                  {activeTab === PAGES.lectureNotes && !isOutsideOfLecture && (
                     <>
                       <TitleContainer>
                         <BackButton
@@ -163,9 +202,7 @@ const App: React.FC<{}> = () => {
                         >
                           &lsaquo;
                         </BackButton>
-                        <Title title="What is a Web Extension?">
-                          What is a Web Extension?
-                        </Title>
+                        <Title title={selectedSection}>{selectedSection}</Title>
                       </TitleContainer>
                       <SubTabs>
                         <SubTabs.Tab
@@ -183,10 +220,10 @@ const App: React.FC<{}> = () => {
                   )}
 
                   <List>
-                    {activeTab === "All Notes" && (
+                    {activeTab === PAGES.allNotes && (
                       <>
                         {isFetchingCourses ? (
-                          <div>Fetching lectures...</div>
+                          <div>Fetching courses...</div>
                         ) : (
                           <>
                             {showCourseSections ? (
@@ -206,10 +243,12 @@ const App: React.FC<{}> = () => {
                                 </TitleContainer>
                                 {fetchSections(courseNotes).map((section) => (
                                   <List.Item
-                                    key={section}
-                                    title={section}
+                                    key={section.idnotes}
+                                    title={section.lecture}
                                     options={null}
-                                    handleClick={() => console.log("clicked")}
+                                    handleClick={() =>
+                                      handleClickSection(section)
+                                    }
                                   />
                                 ))}
                               </>
@@ -219,9 +258,7 @@ const App: React.FC<{}> = () => {
                                   <List.Item
                                     key={course.idcourses}
                                     title={course.title}
-                                    options={fetchLectureOptions(
-                                      course.idcourses
-                                    )}
+                                    options={null}
                                     handleClick={() =>
                                       handleClickCourse(course.idcourses)
                                     }
@@ -234,20 +271,38 @@ const App: React.FC<{}> = () => {
                       </>
                     )}
 
-                    {activeTab === "Lecture Notes" && (
+                    {activeTab === PAGES.lectureNotes && (
                       <>
-                        {displayedCourseNotes.map((note) => (
-                          <List.Item
-                            key={note.idnotes}
-                            timestamp={note.timestamp}
-                            content={note.content}
-                            options={fetchNoteOptions(note.idnotes)}
-                            handleClick={() => handleClickCourse("6")}
-                          />
-                        ))}
+                        {isOutsideOfLecture ? (
+                          <div>Go back to lecture</div>
+                        ) : (
+                          <>
+                            {sortedNotes.length > 0 ? (
+                              sortedNotes.map((note) => (
+                                <List.Item
+                                  key={note.idnotes}
+                                  timestamp={note.timestamp}
+                                  content={extractPlainText(note.content)}
+                                  options={fetchNoteOptions(note.idnotes)}
+                                  handleClick={() =>
+                                    handleClickCourse(note.idcourses)
+                                  }
+                                />
+                              ))
+                            ) : (
+                              <NothingFoundContainer>
+                                <img
+                                  src="https://iili.io/d8jz6HN.png"
+                                  alt="Nothing found"
+                                />
+                                <div>No notes found</div>
+                              </NothingFoundContainer>
+                            )}
+                          </>
+                        )}
                       </>
                     )}
-                    {activeTab === "Settings" && <p>Settings</p>}
+                    {activeTab === PAGES.settings && <p>Settings</p>}
                   </List>
                 </>
               )}
@@ -382,3 +437,15 @@ const Image = styled.img`
   width: 50%;
   align-self: center;
 `;
+
+const NothingFoundContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 60px;
+  img {
+    width: 50%;
+  }
+`;
+

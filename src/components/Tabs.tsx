@@ -33,6 +33,7 @@ const TabsContainer = styled.div`
   font-family: "Roboto", sans-serif;
   margin-left: 20px !important;
   margin-right: 20px !important;
+  margin-bottom: 16px !important;
 `;
 
 const TabItem = styled.div<{ $isActive: boolean }>`
@@ -49,3 +50,4 @@ const TabItem = styled.div<{ $isActive: boolean }>`
     background-color: var(--notebook-green);
   }
 `;
+

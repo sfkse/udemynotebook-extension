@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { createEditor, Editor, Descendant } from "slate";
 import { Editable, Slate, withReact } from "slate-react";
+import { withHistory } from "slate-history";
 import isHotkey from "is-hotkey";
 import styled from "styled-components";
 
@@ -11,6 +12,7 @@ import MarkButton from "./MarkButton";
 import { INote } from "../utils/types";
 import { HOTKEYS } from "../utils/editor";
 import { createNote } from "../api/notes";
+import { getLectureName } from "../utils/notes";
 
 type AddNoteProps = {
   courses: any[];
@@ -24,7 +26,7 @@ const AddNote = ({ courses, userID, setIsAddingNote }: AddNoteProps) => {
   const [isPublic, setIsPublic] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [editor] = useState(() => withReact(createEditor()));
+  const [editor] = useState(() => withHistory(withReact(createEditor())));
   const renderElement = useCallback((props) => <Element {...props} />, []);
   const renderLeaf = useCallback((props) => <Leaf {...props} />, []);
   const initialValue: Descendant[] = [
@@ -75,33 +77,21 @@ const AddNote = ({ courses, userID, setIsAddingNote }: AddNoteProps) => {
   };
 
   const getCourseId = () => {
-    const courseName = document.querySelector(
-      '[class*="curriculum-item-view--course-title"]'
-    )?.textContent;
-    console.log(courseName, courses);
+    let courseName = "";
+    const lectureElement = document.querySelector(
+      'li[class*="curriculum-item-link--is-current-"] span[data-purpose="item-title"]'
+    );
+    if (lectureElement) {
+      courseName = lectureElement.textContent.trim();
+    }
     // Find the course in the courses array
+    console.log("courseName", courseName);
     const course = courses.find((course) => course.title === courseName);
     if (!course) {
       return "";
     }
 
     return course.idcourses;
-  };
-
-  const getLectureName = () => {
-    // Step 1: Find all elements that have a class matching "curriculum-item-link--is-current"
-    const currentItems = document.querySelectorAll(
-      '[class*="curriculum-item-link--is-current"]'
-    );
-    let text = "";
-    // Step 2: Iterate over the found items to find the text "13. Chrome Notifications API"
-    currentItems.forEach((item) => {
-      // Step 3: Find the nested element containing the title using 'data-purpose' attribute
-      const titleElement = item.querySelector('[data-purpose="item-title"]');
-      text = titleElement.textContent.trim();
-    });
-
-    return text;
   };
 
   const toggleMark = (editor, format) => {

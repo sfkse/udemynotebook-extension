@@ -28,3 +28,16 @@ export const createNote = async (newNote: INote) => {
     return {};
   }
 };
+
+export const getLectureNotes = async (lectureName: string, userID: string) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/notes/lecture?lectureName=${lectureName}&userID=${userID}`
+    );
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching lecture notes:", error);
+    return [];
+  }
+};
+

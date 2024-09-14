@@ -6,7 +6,7 @@ import { Button } from "../components/Button";
 import "./popup.css";
 import { IUser } from "../utils/types";
 import { getUserProfileInfo } from "../api/user";
-import { authenticateUser } from "api/auth";
+import { authenticateUser } from "../api/auth";
 
 const App: React.FC<{}> = () => {
   const [isLoggingIn, setIsLoggingIn] = React.useState(false);
@@ -131,3 +131,4 @@ const LoginText = styled.p`
   text-align: center;
   color: var(--notebook-secondary-color);
 `;
+

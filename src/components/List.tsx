@@ -47,7 +47,6 @@ export default List;
 const ListContainer = styled.div`
   display: flex;
   flex-direction: column;
-  margin-top: 16px;
   overflow-y: scroll;
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
@@ -81,13 +80,15 @@ const Timestamp = styled.div`
 const TitleWrapper = styled.div`
   display: flex;
   align-items: center;
+  width: 100%;
 `;
 
 const Content = styled.div`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 300px; /* Adjust as necessary */
+  max-width: 90%; /* Adjust as necessary */
 `;
 
 const Title = styled(Content)``;
+
