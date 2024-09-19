@@ -11,8 +11,8 @@ import MarkButton from "./MarkButton";
 
 import { INote } from "../utils/types";
 import { HOTKEYS } from "../utils/editor";
-import { createNote, getLectureNotes } from "../api/notes";
-import { getLectureName } from "../utils/notes";
+import { createNote, exportToGdocs, getLectureNotes } from "../api/notes";
+import { exportToWord, getLectureName } from "../utils/notes";
 
 type AddNoteProps = {
   courses: any[];
@@ -137,9 +137,50 @@ const AddNote = ({
     return marks ? marks[format] === true : false;
   };
 
-  console.log(noteContent);
+  const handleExport = async (format: string) => {
+    try {
+      switch (format) {
+        case "word":
+          await exportToWord(noteTitle, noteContent);
+          break;
+        case "gdocs":
+          chrome.runtime.sendMessage({ action: "login" }, async (response) => {
+            if (response.success) {
+              console.log("Logged in successfully:", response.token);
+              try {
+                const { docUrl } = await exportToGdocs(
+                  noteTitle,
+                  noteContent,
+                  response.token
+                );
+
+                window.open(docUrl, "_blank");
+              } catch (error) {
+                console.error("Error exporting to Google Docs:", error);
+                // Handle error (e.g., show an error message to the user)
+              }
+            }
+          });
+          break;
+      }
+    } catch (error) {
+      console.error("Error exporting document:", error);
+      // Handle error (e.g., show an error message to the user)
+    }
+  };
+
   return (
     <EditorContainer>
+      <ExportButton>
+        Export
+        <ExportDropdown>
+          <ExportOption onClick={() => handleExport("pdf")}>PDF</ExportOption>
+          <ExportOption onClick={() => handleExport("word")}>Word</ExportOption>
+          <ExportOption onClick={() => handleExport("gdocs")}>
+            Google Docs
+          </ExportOption>
+        </ExportDropdown>
+      </ExportButton>
       <TitleInput
         type="text"
         placeholder="Note Title (optional)"
@@ -287,5 +328,41 @@ const Toolbar = styled.div`
   gap: 2px;
   background-color: var(--notebook-primary-color);
   margin: 2rem 0 1rem 0;
+`;
+
+const ExportButton = styled.div`
+  position: relative;
+  display: inline-block;
+  padding: 10px;
+  background-color: var(--notebook-green);
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+  margin-bottom: 10px;
+
+  &:hover > div {
+    display: block;
+  }
+`;
+
+const ExportDropdown = styled.div`
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+`;
+
+const ExportOption = styled.a`
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f1f1f1;
+  }
 `;
 

@@ -1,11 +1,7 @@
 // background.js
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("Udemy Note Taker Extension installed.");
-});
-
 // Handle authentication flow with Google
-function authenticateWithGoogle(interactive = true) {
+export function authenticateWithGoogle(interactive = true) {
   return new Promise((resolve, reject) => {
     chrome.identity.getAuthToken({ interactive }, (token) => {
       if (chrome.runtime.lastError) {
@@ -36,3 +32,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Refresh token logic can be added here if required (e.g., token expiration management).
+

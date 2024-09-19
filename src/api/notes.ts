@@ -70,3 +70,28 @@ export const deleteNote = async (noteId: string): Promise<void> => {
   }
 };
 
+export const exportToGdocs = async (
+  title: string,
+  content: string,
+  authToken: string
+) => {
+  try {
+    const response = await fetch(`${API_URL}/googledocs`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ title, content }),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    console.log("first", response.json());
+    return await response.json();
+  } catch (error) {
+    console.error("Error exporting to Google Docs:", error);
+    throw error;
+  }
+};
+

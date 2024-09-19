@@ -15,7 +15,10 @@
   },
   "oauth2": {
     "client_id": "740880158839-he6q8ft4qbe8mikkedfl65udu6763mdt.apps.googleusercontent.com",
-    "scopes": ["https://www.googleapis.com/auth/userinfo.email"]
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/docs"
+    ]
   },
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgfbDSoXqFPFfxU8s5IwLLsJS3zhGy764T/Vl8BQJkt6sbBaps0Tha4R3WSViUBvZARN9tN0sRgqs2Gxt/UG17qdwAX8nD4Z3q/oUzIdqXPt7RQGRrohxDPWn/q+B58ue52JWOJTd5/ONuuuDC5BbKsu3ocp5BaVDHO5fDd0Db/TVF0TbWbE2o6/Jmkvlx1ZQlDrTgfWvY+JLv7qqhaKY5juTXM+hYGrBlApnWhOu+HgjlE2JvhnoHkyQDBRJdh87cTAmOwiliHwf2K7Iezw7ZjUtDph8ZXnot2DXzv+46dLWw2YIil4n2LEdTsSNXIAVnSQ0YeRCmoNHfONI/zY1+QIDAQAB",
   "permissions": ["storage", "identity", "activeTab", "scripting"],

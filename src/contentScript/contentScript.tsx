@@ -344,6 +344,7 @@ const App: React.FC<{}> = () => {
                             {sortedNotes.length > 0 ? (
                               sortedNotes.map((note) => (
                                 <List.Item
+                                  title={note.title}
                                   key={note.idnotes}
                                   timestamp={note.timestamp}
                                   content={extractPlainText(note.content)}

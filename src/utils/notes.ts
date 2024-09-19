@@ -1,5 +1,6 @@
 import { INote } from "./types";
-
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
 export const fetchSections = (courseNotes: INote[]) => {
   const sections = courseNotes.reduce((acc: INote[], note) => {
     const section = acc.find((section) => section.lecture === note.lecture);
@@ -33,4 +34,54 @@ export const getLectureName = (noteToEdit: INote | null = null) => {
 
   return text;
 };
+
+const parseContent = (content: string) => {
+  return JSON.parse(content).map((node: any) => ({
+    type: node.type,
+    children: node.children.map((child: any) => ({
+      text: child.text,
+      bold: child.bold,
+      italic: child.italic,
+      underline: child.underline,
+      code: child.code,
+    })),
+  }));
+};
+
+export const exportToWord = async (title: string, content: string) => {
+  const parsedContent = parseContent(content);
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: [
+          new Paragraph({
+            text: title,
+            heading: HeadingLevel.HEADING_1,
+          }),
+          ...parsedContent.map(
+            (node: any) =>
+              new Paragraph({
+                children: node.children.map(
+                  (child: any) =>
+                    new TextRun({
+                      text: child.text,
+                      bold: child.bold,
+                      italics: child.italic,
+                      underline: child.underline,
+                      ...(child.code && { font: "Courier New" }),
+                    })
+                ),
+              })
+          ),
+        ],
+      },
+    ],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  saveAs(blob, `${title}.docx`);
+};
+// ... existing exportToGoogleDocs function ...
 
