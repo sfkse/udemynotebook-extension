@@ -1,12 +1,12 @@
 import { INote } from "../utils/types";
-import { API_URL } from "../utils/config";
+import { apiClient } from "./apiClient";
 
 export const getCourseNotes = async (courseID: string, userID: string) => {
   try {
-    const response = await fetch(
-      `${API_URL}/notes/course?courseID=${courseID}&userID=${userID}`
+    const response = await apiClient(
+      `/notes/course?courseID=${courseID}&userID=${userID}`
     );
-    return await response.json();
+    return await response;
   } catch (error) {
     console.error("Error fetching course notes:", error);
     return [];
@@ -15,14 +15,14 @@ export const getCourseNotes = async (courseID: string, userID: string) => {
 
 export const createNote = async (newNote: INote) => {
   try {
-    const response = await fetch(`${API_URL}/notes/create`, {
+    const response = await apiClient(`/notes/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(newNote),
     });
-    return await response.json();
+    return await response;
   } catch (error) {
     console.error("Error creating note:", error);
     return {};
@@ -31,10 +31,10 @@ export const createNote = async (newNote: INote) => {
 
 export const getLectureNotes = async (lectureName: string, userID: string) => {
   try {
-    const response = await fetch(
-      `${API_URL}/notes/lecture?lectureName=${lectureName}&userID=${userID}`
+    const response = await apiClient(
+      `/notes/lecture?lectureName=${lectureName}&userID=${userID}`
     );
-    return await response.json();
+    return await response;
   } catch (error) {
     console.error("Error fetching lecture notes:", error);
     return [];
@@ -42,7 +42,7 @@ export const getLectureNotes = async (lectureName: string, userID: string) => {
 };
 
 export const updateNote = async (note: INote): Promise<void> => {
-  const response = await fetch(`${API_URL}/notes/update`, {
+  const response = await apiClient(`/notes/update`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -55,15 +55,18 @@ export const updateNote = async (note: INote): Promise<void> => {
   }
 };
 
-export const deleteNote = async (noteId: string): Promise<void> => {
+export const deleteNote = async (
+  noteId: string,
+  userID: string
+): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}/notes/delete?noteID=${noteId}`, {
-      method: "POST",
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to delete note");
-    }
+    const response = await apiClient(
+      `/notes/delete?noteID=${noteId}&userID=${userID}`,
+      {
+        method: "POST",
+      }
+    );
+    return await response;
   } catch (error) {
     console.error("Error deleting note:", error);
     throw error;
@@ -76,7 +79,7 @@ export const exportToGdocs = async (
   authToken: string
 ) => {
   try {
-    const response = await fetch(`${API_URL}/googledocs`, {
+    const response = await apiClient(`/googledocs`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

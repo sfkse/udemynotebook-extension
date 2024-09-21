@@ -21,13 +21,17 @@ import useFetchCourseNotes from "../hooks/useFetchCourseNotes";
 import { getLectureNotes, updateNote, deleteNote } from "../api/notes";
 
 import "./contentScript.css";
+import { setAuthToken } from "../api/apiClient";
 
 const App: React.FC<{}> = () => {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState(PAGES.allNotes);
   const [subTab, setSubTab] = React.useState("My notes");
   const [isAddingNote, setIsAddingNote] = React.useState(false);
-  const [loggedInUser, setLoggedInUser] = React.useState<string>(null);
+  const [loggedInUser, setLoggedInUser] = React.useState<{
+    userID: string;
+    email: string;
+  }>({ userID: null, email: null });
 
   const [showCourseSections, setShowCourseSections] = React.useState(false);
   const [isOutsideOfLecture, setIsOutsideOfLecture] = React.useState(false);
@@ -40,9 +44,8 @@ const App: React.FC<{}> = () => {
   const [isNoteDetailPage, setIsNoteDetailPage] = React.useState(false);
   const [noteToEdit, setNoteToEdit] = React.useState<INote | null>(null);
 
-  const { courses, isFetchingCourses } = useFetchCourses();
-  const { courseNotes, isFetchingCourseNotes, fetchCourseNotes } =
-    useFetchCourseNotes();
+  const { courses, isFetchingCourses, fetchCourses } = useFetchCourses();
+  const { courseNotes, fetchCourseNotes } = useFetchCourseNotes();
 
   const sortedNotes =
     subTab === "My notes"
@@ -50,16 +53,16 @@ const App: React.FC<{}> = () => {
       : displayedSectionNotes.filter((note) => note.isPublic);
 
   useEffect(() => {
-    chrome.storage.sync.get(["userID", "email"], (result) => {
-      if (result.userID && result.email) {
-        setLoggedInUser(result.userID);
+    chrome.storage.sync.get(["userID", "email", "token"], (result) => {
+      if (result.userID && result.email && result.token) {
+        setLoggedInUser({ userID: result.userID, email: result.email });
+        setAuthToken(result.token);
+        fetchCourses();
       }
     });
   }, []);
 
-  // Use useEffect to listen for messages from the popup
   useEffect(() => {
-    // Listener for messages sent by the popup
     const messageListener = (
       message: any,
       sender: chrome.runtime.MessageSender,
@@ -67,19 +70,36 @@ const App: React.FC<{}> = () => {
     ) => {
       if (message.message === "login") {
         console.log("Login data received:", message.data);
-        setLoggedInUser(message.data.userID); // Update the state with the logged-in username
-
+        setLoggedInUser(message.data);
+        sendResponse({ status: "received" });
+      } else if (message.message === "logout") {
+        console.log("Logout message received");
+        handleLogout();
         sendResponse({ status: "received" });
       }
     };
 
-    // Add the message listener
     chrome.runtime.onMessage.addListener(messageListener);
 
-    // Cleanup listener when the component unmounts
     return () => {
       chrome.runtime.onMessage.removeListener(messageListener);
     };
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setLoggedInUser(null);
+    setIsDrawerOpen(false);
+    setActiveTab(PAGES.allNotes);
+    setSubTab("My notes");
+    setIsAddingNote(false);
+    // Reset other state variables as needed
+    setShowCourseSections(false);
+    setIsOutsideOfLecture(false);
+    setSelectedCourse(null);
+    setSelectedSection(null);
+    setDisplayedSectionNotes([]);
+    setIsNoteDetailPage(false);
+    setNoteToEdit(null);
   }, []);
 
   const toggleDrawer = () => {
@@ -92,7 +112,7 @@ const App: React.FC<{}> = () => {
       if (!lectureName) {
         setIsOutsideOfLecture(true);
       } else {
-        const notes = await getLectureNotes(lectureName, loggedInUser);
+        const notes = await getLectureNotes(lectureName, loggedInUser.userID);
         setDisplayedSectionNotes(notes);
         setSelectedSection(lectureName);
         setIsOutsideOfLecture(false);
@@ -107,7 +127,7 @@ const App: React.FC<{}> = () => {
   };
 
   const handleClickCourse = async (courseID: string) => {
-    await fetchCourseNotes(courseID, loggedInUser);
+    await fetchCourseNotes(courseID, loggedInUser.userID);
     setShowCourseSections(true);
     const course = courses.find((course) => course.idcourses === courseID);
     setSelectedCourse(course.title);
@@ -138,11 +158,11 @@ const App: React.FC<{}> = () => {
         if (activeTab === PAGES.lectureNotes) {
           const updatedNotes = await getLectureNotes(
             selectedSection,
-            loggedInUser
+            loggedInUser.userID
           );
           setDisplayedSectionNotes(updatedNotes);
         } else if (selectedCourse) {
-          await fetchCourseNotes(selectedCourse, loggedInUser);
+          await fetchCourseNotes(selectedCourse, loggedInUser.userID);
         }
       } catch (error) {
         console.error("Error updating note:", error);
@@ -151,21 +171,24 @@ const App: React.FC<{}> = () => {
     [activeTab, selectedSection, loggedInUser, selectedCourse, fetchCourseNotes]
   );
 
+  console.log("selectedSection", selectedSection);
+
   const handleDeleteNote = useCallback(
     async (e: React.MouseEvent<HTMLDivElement>, noteId: string) => {
       e.stopPropagation();
       if (window.confirm("Are you sure you want to delete this note?")) {
         try {
-          await deleteNote(noteId);
+          await deleteNote(noteId, loggedInUser.userID);
           // Refresh the notes list after deleting
           if (activeTab === PAGES.lectureNotes) {
+            console.log("selectedSection", selectedSection);
             const updatedNotes = await getLectureNotes(
               selectedSection,
-              loggedInUser
+              loggedInUser.userID
             );
             setDisplayedSectionNotes(updatedNotes);
           } else if (selectedCourse) {
-            await fetchCourseNotes(selectedCourse, loggedInUser);
+            await fetchCourseNotes(selectedCourse, loggedInUser.userID);
           }
         } catch (error) {
           console.error("Error deleting note:", error);
@@ -179,6 +202,7 @@ const App: React.FC<{}> = () => {
     setIsAddingNote(false);
     setIsNoteDetailPage(false);
     setNoteToEdit(null);
+    setActiveTab(PAGES.lectureNotes);
   }, []);
 
   const fetchSectionOptions = (lectureName: string) => {
@@ -223,13 +247,13 @@ const App: React.FC<{}> = () => {
       </DrawerHandle>
       <DrawerContainer $isOpen={isDrawerOpen}>
         <Container>
-          {loggedInUser ? (
+          {loggedInUser.userID ? (
             <>
-              <LogoContainer>Welcome Sefa Köse!</LogoContainer>
+              <LogoContainer>Welcome {loggedInUser.email}!</LogoContainer>
               <ButtonContainer>
                 {!isAddingNote && (
                   <Button
-                    title="Add Note"
+                    title="Add Note For Current Lecture"
                     handleClick={handleAddNote}
                     icon="https://iili.io/d8XK7i7.png"
                   />
@@ -240,7 +264,7 @@ const App: React.FC<{}> = () => {
                   isNoteDetailPage={isNoteDetailPage}
                   setIsNoteDetailPage={setIsNoteDetailPage}
                   courses={courses}
-                  userID={loggedInUser}
+                  userID={loggedInUser.userID}
                   setIsAddingNote={setIsAddingNote}
                   noteToEdit={noteToEdit}
                   onUpdateNote={handleUpdateNote}
@@ -318,16 +342,26 @@ const App: React.FC<{}> = () => {
                               </>
                             ) : (
                               <>
-                                {courses.map((course) => (
-                                  <List.Item
-                                    key={course.idcourses}
-                                    title={course.title}
-                                    options={null}
-                                    handleClick={() =>
-                                      handleClickCourse(course.idcourses)
-                                    }
-                                  />
-                                ))}
+                                {courses.length > 0 ? (
+                                  courses.map((course) => (
+                                    <List.Item
+                                      key={course.idcourses}
+                                      title={course.title}
+                                      options={null}
+                                      handleClick={() =>
+                                        handleClickCourse(course.idcourses)
+                                      }
+                                    />
+                                  ))
+                                ) : (
+                                  <NothingFoundContainer>
+                                    <img
+                                      src="https://iili.io/d8jz6HN.png"
+                                      alt="Nothing found"
+                                    />
+                                    <div>No courses found</div>
+                                  </NothingFoundContainer>
+                                )}
                               </>
                             )}
                           </>

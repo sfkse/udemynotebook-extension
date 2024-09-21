@@ -6,10 +6,6 @@ const useFetchCourses = () => {
   const [courses, setCourses] = React.useState<ICourse[]>([]);
   const [isFetchingCourses, setIsFetchingCourses] = React.useState(true);
 
-  React.useEffect(() => {
-    fetchCourses();
-  }, []);
-
   const fetchCourses = async () => {
     chrome.storage.sync.get(["userID", "email"], async (result) => {
       if (result.userID && result.email) {
@@ -19,7 +15,7 @@ const useFetchCourses = () => {
       }
     });
   };
-  return { courses, isFetchingCourses };
+  return { courses, isFetchingCourses, fetchCourses };
 };
 
 export default useFetchCourses;

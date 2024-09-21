@@ -13,6 +13,7 @@ import { INote } from "../utils/types";
 import { HOTKEYS } from "../utils/editor";
 import { createNote, exportToGdocs, getLectureNotes } from "../api/notes";
 import { exportToWord, getLectureName } from "../utils/notes";
+import { createCourse } from "../api/courses";
 
 type AddNoteProps = {
   courses: any[];
@@ -28,9 +29,6 @@ type AddNoteProps = {
 const AddNote = ({
   courses,
   userID,
-  setIsAddingNote,
-  isNoteDetailPage,
-  setIsNoteDetailPage,
   noteToEdit,
   onUpdateNote,
   onComplete,
@@ -71,22 +69,32 @@ const AddNote = ({
           // If no notes found for this lecture, fall back to the original method
           const courseName = document
             .querySelector(
-              'li[class*="curriculum-item-link--is-current-"] span[data-purpose="item-title"]'
+              'span[class*="curriculum-item-view--course-title--"]'
             )
             ?.textContent?.trim();
 
           if (courseName) {
             const course = courses.find((c) => c.title === courseName);
-            return course ? course.idcourses : "";
+            if (!course) {
+              const courseId = await createAndGetCourseId(courseName);
+              console.log("courseId first", courseId);
+              return courseId;
+            }
+            return course.idcourses;
           }
         }
       } catch (error) {
-        console.error("Error fetching lecture notes:", error);
+        console.error("Error when getting course ID:", error);
       }
     }
 
     return ""; // Return empty string if no course ID could be determined
   }, [noteToEdit, courses, userID]);
+
+  const createAndGetCourseId = async (courseName: string) => {
+    const course = await createCourse(courseName);
+    return course.idcourses;
+  };
 
   const handleSaveNote = async (e) => {
     e.preventDefault();

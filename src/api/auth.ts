@@ -1,18 +1,42 @@
-import { API_URL } from "../utils/config";
+import { apiClient, setAuthToken } from "./apiClient";
 
-export const authenticateUser = async (googleID: string, email: string) => {
+interface AuthResponse {
+  userID: string;
+  email: string;
+  token: string;
+}
+
+export const authenticateUser = async (
+  email: string,
+  password: string
+): Promise<AuthResponse> => {
   try {
-    const response = await fetch(`${API_URL}/users/auth`, {
+    const data = await apiClient("/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ googleID, email }),
+      body: JSON.stringify({ email, password }),
     });
-    return await response.json();
+    setAuthToken(data.token);
+    return data;
   } catch (error) {
-    console.error("Error authenticating user:", error);
-    return {};
+    console.error("Authentication error:", error);
+    throw error;
+  }
+};
+
+export const registerUser = async (
+  email: string,
+  password: string
+): Promise<AuthResponse> => {
+  try {
+    const data = await apiClient("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    setAuthToken(data.token);
+    return data;
+  } catch (error) {
+    console.error("Registration error:", error);
+    throw error;
   }
 };
 
