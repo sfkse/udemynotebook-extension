@@ -49,10 +49,10 @@ const renewToken = async (): Promise<string> => {
   }
 
   const data = await response.json();
-  setAuthToken(data.token);
+  setAuthToken(data.accessToken);
   // Renew the token in the storage
-  chrome.storage.sync.set({ token: data.token });
-  return data.token;
+  chrome.storage.sync.set({ token: data.accessToken });
+  return data.accessToken;
 };
 
 const processQueue = () => {

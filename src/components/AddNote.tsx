@@ -12,7 +12,7 @@ import MarkButton from "./MarkButton";
 import { INote } from "../utils/types";
 import { HOTKEYS } from "../utils/editor";
 import { createNote, exportToGdocs, getLectureNotes } from "../api/notes";
-import { exportToWord, getCourseName, getLectureName } from "../utils/notes";
+import { exportToWord, getCourseName } from "../utils/notes";
 import { createCourse } from "../api/courses";
 
 type AddNoteProps = {
@@ -20,15 +20,17 @@ type AddNoteProps = {
   userID: string;
   setIsAddingNote: React.Dispatch<React.SetStateAction<boolean>>;
   isNoteDetailPage: boolean;
+  lectureToAdd: string;
   setIsNoteDetailPage: React.Dispatch<React.SetStateAction<boolean>>;
   noteToEdit?: INote | null;
   onUpdateNote: (note: INote) => Promise<void>;
-  onComplete: () => void;
+  onComplete: (lecture?: string) => void;
 };
 
 const AddNote = ({
   courses,
   userID,
+  lectureToAdd,
   noteToEdit,
   onUpdateNote,
   onComplete,
@@ -55,14 +57,13 @@ const AddNote = ({
       // If in edit mode, return the course ID from the note being edited
       return noteToEdit.idcourses;
     } else {
-      // If in add mode, get the current lecture name and find a note with this lecture
-      const lectureName = getLectureName();
-
       try {
         // Assuming you have a function to get notes by lecture name
-        const lectureNotes = await getLectureNotes(lectureName, userID);
+        console.log("lectureToAdd", lectureToAdd);
+        const lectureNotes = await getLectureNotes(lectureToAdd, userID);
 
         if (lectureNotes.length > 0) {
+          console.log("lectureNotes", lectureNotes);
           // Return the course ID from the first note with this lecture name
           return lectureNotes[0].idcourses;
         } else {
@@ -107,7 +108,7 @@ const AddNote = ({
       isPublic,
       idcourses: courseId,
       idusers: userID,
-      lecture: getLectureName(noteToEdit),
+      lecture: noteToEdit?.lecture ?? lectureToAdd,
       timestamp: currentTime,
     };
     console.log(newNote);
@@ -118,7 +119,8 @@ const AddNote = ({
       } else {
         await createNote(newNote);
       }
-      onComplete();
+      // This is to refresh the notes based on the lecture name
+      onComplete(newNote.lecture);
     } catch (error) {
       console.error(error);
     } finally {

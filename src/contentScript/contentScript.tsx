@@ -119,15 +119,10 @@ const App: React.FC<{}> = () => {
     },
     [loggedInUser, fetchCourses]
   );
-  console.log("courses", courses);
-  console.log("courseNotes", courseNotes);
-  console.log("sections", sections);
-  console.log("selectedCourse", selectedCourse);
-  console.log("selectedSection", selectedSection);
 
   const getLectureToAddNote = () => {
-    if (selectedSection) return selectedSection.split(".")[0];
-    else return getLectureName().split(".")[0];
+    if (selectedSection) return selectedSection;
+    else return getLectureName();
   };
 
   const handleClickCourse = useCallback(
@@ -165,34 +160,40 @@ const App: React.FC<{}> = () => {
     setIsAddNotePage(true);
   }, []);
 
-  const refreshNotes = useCallback(async () => {
-    const activeCourse = getCourseName();
-    const course = courses.find((course) => course.title === activeCourse);
-    const activeCourseNotes = await fetchCourseNotes(
-      course.idcourses,
-      loggedInUser.userID
-    );
-    const activeSection = getLectureName();
-    const updatedNotes = activeCourseNotes.filter(
-      (note) => note.lecture === activeSection
-    );
+  const refreshNotes = useCallback(
+    async (section?: string) => {
+      const activeCourse = getCourseName();
+      const course = courses.find((course) => course.title === activeCourse);
+      const activeCourseNotes = await fetchCourseNotes(
+        course.idcourses,
+        loggedInUser.userID
+      );
+      const activeSection = section ?? getLectureName();
+      const updatedNotes = activeCourseNotes.filter(
+        (note) => note.lecture === activeSection
+      );
 
-    setDisplayedAuthUserNotes(updatedNotes);
-    setCourseNotes(updatedNotes);
-    setSelectedCourse(activeCourse);
-    setSections(fetchSections(activeCourseNotes));
-    setSelectedSection(activeSection);
-  }, [loggedInUser, selectedCourse, fetchCourseNotes, setCourseNotes]);
+      setDisplayedAuthUserNotes(updatedNotes);
+      setCourseNotes(activeCourseNotes);
+      setSelectedCourse(activeCourse);
+      setSections(fetchSections(activeCourseNotes));
+      setSelectedSection(activeSection);
+    },
+    [loggedInUser, selectedCourse, fetchCourseNotes, setCourseNotes]
+  );
 
   const handleClickAddNote = useCallback(() => setIsAddNotePage(true), []);
 
-  const handleAddNoteComplete = useCallback(() => {
-    setIsAddNotePage(false);
-    setIsNoteDetailPage(false);
-    setNoteToEdit(null);
-    setActiveTab(PAGES.lectureNotes);
-    refreshNotes();
-  }, [refreshNotes]);
+  const handleAddNoteComplete = useCallback(
+    (lecture?: string) => {
+      setIsAddNotePage(false);
+      setIsNoteDetailPage(false);
+      setNoteToEdit(null);
+      setActiveTab(PAGES.lectureNotes);
+      refreshNotes(lecture);
+    },
+    [refreshNotes]
+  );
 
   const handleUpdateNote = useCallback(
     async (updatedNote: INote) => {
@@ -243,6 +244,7 @@ const App: React.FC<{}> = () => {
           userID={loggedInUser.userID}
           setIsAddingNote={setIsAddNotePage}
           noteToEdit={noteToEdit}
+          lectureToAdd={getLectureToAddNote()}
           onUpdateNote={handleUpdateNote}
           onComplete={handleAddNoteComplete}
         />
@@ -255,7 +257,9 @@ const App: React.FC<{}> = () => {
         <ButtonContainer>
           {!isAddNotePage && (
             <Button
-              title={`Add note for lecture ${getLectureToAddNote()}`}
+              title={`Add note for lecture ${
+                getLectureToAddNote().split(".")[0]
+              }`}
               handleClick={handleClickAddNote}
               icon="https://iili.io/d8XK7i7.png"
             />
@@ -309,6 +313,9 @@ const App: React.FC<{}> = () => {
         <>
           {showCourseSections && selectedCourse ? (
             <AllSectionsTabContent
+              setActiveTab={setActiveTab}
+              setShowCourseSections={setShowCourseSections}
+              selectedCourse={selectedCourse}
               sections={sections}
               courseNotes={courseNotes}
               handleClickSection={handleClickSection}

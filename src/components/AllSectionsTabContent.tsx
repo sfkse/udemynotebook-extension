@@ -3,20 +3,33 @@ import List from "./List";
 import NothingFoundContainer from "./NothingFoundContainer";
 import { INote } from "utils/types";
 import styled from "styled-components";
+import PageTitle from "./PageTitle";
+import { PAGES } from "../utils/data";
 
 const AllSectionsTabContent: React.FC<{
   sections: any;
   handleClickSection: any;
   courseNotes: any;
-}> = ({ sections, handleClickSection, courseNotes }) => {
+  setActiveTab: any;
+  setShowCourseSections: any;
+  selectedCourse: any;
+}> = ({
+  sections,
+  handleClickSection,
+  courseNotes,
+  setActiveTab,
+  setShowCourseSections,
+  selectedCourse,
+}) => {
   const fetchSectionOptions = useCallback(
     (lectureName: string) => {
       const sectionNotes = courseNotes.filter(
         (note: INote) => note.lecture === lectureName
       );
+
       return (
         <OptionsWrapper>{`${sectionNotes.length} ${
-          sectionNotes.length === 1 ? "note" : "notes"
+          sectionNotes.length <= 1 ? "note" : "notes"
         }`}</OptionsWrapper>
       );
     },
@@ -24,6 +37,13 @@ const AllSectionsTabContent: React.FC<{
   );
   return (
     <>
+      <PageTitle
+        handleBackClick={() => {
+          setActiveTab(PAGES.allNotes);
+          setShowCourseSections(false);
+        }}
+        selectedSection={selectedCourse}
+      />
       {sections.length > 0 ? (
         sections.map((section) => (
           <List.Item

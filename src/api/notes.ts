@@ -49,10 +49,6 @@ export const updateNote = async (note: INote): Promise<void> => {
     },
     body: JSON.stringify(note),
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to update note");
-  }
 };
 
 export const deleteNote = async (
