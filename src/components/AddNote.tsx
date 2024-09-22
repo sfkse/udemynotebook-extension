@@ -12,7 +12,7 @@ import MarkButton from "./MarkButton";
 import { INote } from "../utils/types";
 import { HOTKEYS } from "../utils/editor";
 import { createNote, exportToGdocs, getLectureNotes } from "../api/notes";
-import { exportToWord, getLectureName } from "../utils/notes";
+import { exportToWord, getCourseName, getLectureName } from "../utils/notes";
 import { createCourse } from "../api/courses";
 
 type AddNoteProps = {
@@ -67,11 +67,7 @@ const AddNote = ({
           return lectureNotes[0].idcourses;
         } else {
           // If no notes found for this lecture, fall back to the original method
-          const courseName = document
-            .querySelector(
-              'span[class*="curriculum-item-view--course-title--"]'
-            )
-            ?.textContent?.trim();
+          const courseName = getCourseName();
 
           if (courseName) {
             const course = courses.find((c) => c.title === courseName);

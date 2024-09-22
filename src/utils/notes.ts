@@ -1,6 +1,7 @@
 import { INote } from "./types";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
+
 export const fetchSections = (courseNotes: INote[]) => {
   const sections = courseNotes.reduce((acc: INote[], note) => {
     const section = acc.find((section) => section.lecture === note.lecture);
@@ -33,6 +34,12 @@ export const getLectureName = (noteToEdit: INote | null = null) => {
   });
 
   return text;
+};
+
+export const getCourseName = () => {
+  return document
+    .querySelector('span[class*="curriculum-item-view--course-title--"]')
+    ?.textContent?.trim();
 };
 
 const parseContent = (content: string) => {

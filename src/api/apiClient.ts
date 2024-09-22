@@ -2,9 +2,14 @@ import { API_BASE_URL } from "../utils/config";
 import { jwtDecode } from "jwt-decode";
 
 let authToken: string | null = null;
+let refreshToken: string | null = null;
 
 export const setAuthToken = (token: string | null) => {
   authToken = token;
+};
+
+export const setRefreshToken = (token: string | null) => {
+  refreshToken = token;
 };
 
 const isTokenExpired = (token: string): boolean => {
@@ -20,12 +25,13 @@ const isTokenExpired = (token: string): boolean => {
 };
 
 const renewToken = async (): Promise<string> => {
-  const response = await fetch(`${API_BASE_URL}/auth/renew`, {
+  const response = await fetch(`${API_BASE_URL}/auth/renewToken`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
     },
+    body: JSON.stringify({ refreshToken }),
   });
 
   if (!response.ok) {
@@ -61,7 +67,6 @@ export const apiClient = async (
     headers["Authorization"] = `Bearer ${authToken}`;
   }
 
-  console.log("endpoint", endpoint);
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,

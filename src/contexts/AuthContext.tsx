@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { authenticateUser, registerUser } from "../api/auth";
-import { setAuthToken } from "../api/apiClient";
+import { setAuthToken, setRefreshToken } from "../api/apiClient";
 
 interface AuthContextType {
   user: { userID: string; email: string } | null;
@@ -22,14 +22,23 @@ export const AuthProvider: React.FC = ({ children }) => {
 
   useEffect(() => {
     // Check if user is already logged in
-    chrome.storage.sync.get(["userID", "email", "token"], (result) => {
-      if (result.userID && result.email && result.token) {
-        setUser({ userID: result.userID, email: result.email });
-        setToken(result.token);
-        setAuthToken(result.token);
+    chrome.storage.sync.get(
+      ["userID", "email", "token", "refreshToken"],
+      (result) => {
+        if (
+          result.userID &&
+          result.email &&
+          result.token &&
+          result.refreshToken
+        ) {
+          setUser({ userID: result.userID, email: result.email });
+          setToken(result.token);
+          setAuthToken(result.token);
+          setRefreshToken(result.refreshToken);
+        }
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    );
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -39,10 +48,11 @@ export const AuthProvider: React.FC = ({ children }) => {
       chrome.storage.sync.set({
         userID: data.userID,
         email: data.email,
-        token: data.token,
+        token: data.accessToken,
+        refreshToken: data.refreshToken,
       });
       setUser({ userID: data.userID, email: data.email });
-      setToken(data.token);
+      setToken(data.accessToken);
     } catch (error) {
       throw error;
     } finally {
@@ -57,10 +67,10 @@ export const AuthProvider: React.FC = ({ children }) => {
       chrome.storage.sync.set({
         userID: data.userID,
         email: data.email,
-        token: data.token,
+        token: data.accessToken,
       });
       setUser({ userID: data.userID, email: data.email });
-      setToken(data.token);
+      setToken(data.accessToken);
     } catch (error) {
       throw error;
     } finally {
@@ -69,10 +79,14 @@ export const AuthProvider: React.FC = ({ children }) => {
   };
 
   const logout = () => {
-    chrome.storage.sync.remove(["userID", "email", "token"], () => {
-      setUser(null);
-      setToken(null);
-    });
+    chrome.storage.sync.remove(
+      ["userID", "email", "token", "refreshToken"],
+      () => {
+        setUser(null);
+        setToken(null);
+        setRefreshToken(null);
+      }
+    );
   };
 
   return (

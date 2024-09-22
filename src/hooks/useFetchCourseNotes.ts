@@ -1,23 +1,17 @@
-import React from "react";
-import { INote } from "../utils/types";
 import { getCourseNotes } from "../api/notes";
 
 const useFetchLectureNotes = () => {
-  const [courseNotes, setCourseNotes] = React.useState<INote[]>([]);
-  const [isFetchingCourseNotes, setIsFetchingCourseNotes] =
-    React.useState(true);
+  // const [courseNotes, setCourseNotes] = React.useState<INote[]>([]);
 
   const fetchCourseNotes = async (lectureID: string, userID: string) => {
     try {
-      const fetchedCourseNotes = await getCourseNotes(lectureID, userID);
-      setCourseNotes(fetchedCourseNotes);
+      return await getCourseNotes(lectureID, userID);
     } catch (error) {
       console.error("Error fetching course notes:", error);
-    } finally {
-      setIsFetchingCourseNotes(false);
+      return [];
     }
   };
-  return { courseNotes, isFetchingCourseNotes, fetchCourseNotes };
+  return { fetchCourseNotes };
 };
 
 export default useFetchLectureNotes;

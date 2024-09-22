@@ -1,9 +1,10 @@
-import { apiClient, setAuthToken } from "./apiClient";
+import { apiClient, setAuthToken, setRefreshToken } from "./apiClient";
 
 interface AuthResponse {
   userID: string;
   email: string;
-  token: string;
+  accessToken: string;
+  refreshToken: string;
 }
 
 export const authenticateUser = async (
@@ -15,7 +16,8 @@ export const authenticateUser = async (
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-    setAuthToken(data.token);
+    setAuthToken(data.accessToken);
+    setRefreshToken(data.refreshToken);
     return data;
   } catch (error) {
     console.error("Authentication error:", error);
@@ -32,7 +34,7 @@ export const registerUser = async (
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-    setAuthToken(data.token);
+    setAuthToken(data.accessToken);
     return data;
   } catch (error) {
     console.error("Registration error:", error);

@@ -16,7 +16,6 @@ const SubTabs = ({ children }: TabsProps) => {
 };
 
 const Tab = ({ title, activeTab, handleClick }: Tab) => {
-  console.log("Tab", title, activeTab);
   return (
     <TabItem onClick={handleClick} $isActive={activeTab === title}>
       {title}
@@ -51,3 +50,4 @@ const TabItem = styled.div<{ $isActive: boolean }>`
     border-bottom: 1px solid var(--notebook-green);
   }
 `;
+

@@ -1,56 +1,49 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { createRoot } from "react-dom/client";
 import styled from "styled-components";
 import "fontsource-roboto";
 
 import Tabs from "../components/Tabs";
-import List from "../components/List";
 import { Button } from "../components/Button";
-import SubTabs from "../components/SubTabs";
-import NoteOptions from "../components/NoteOptions";
 import AddNote from "../components/AddNote";
-import PageTitle from "../components/PageTitle";
+import LectureTabContent from "../components/LectureTabContent";
+import AllNotesTabContent from "../components/AllNotesTabContent";
+import AllSectionsTabContent from "../components/AllSectionsTabContent";
 
 import { PAGES } from "../utils/data";
 import { INote } from "../utils/types";
-import { fetchSections, getLectureName } from "../utils/notes";
+import { fetchSections, getCourseName, getLectureName } from "../utils/notes";
 
 import useFetchCourses from "../hooks/useFetchCourses";
 import useFetchCourseNotes from "../hooks/useFetchCourseNotes";
 
 import { getLectureNotes, updateNote, deleteNote } from "../api/notes";
-
-import "./contentScript.css";
 import { setAuthToken } from "../api/apiClient";
 
+import "./contentScript.css";
+
 const App: React.FC<{}> = () => {
-  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState(PAGES.allNotes);
-  const [subTab, setSubTab] = React.useState("My notes");
-  const [isAddingNote, setIsAddingNote] = React.useState(false);
-  const [loggedInUser, setLoggedInUser] = React.useState<{
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState(PAGES.allNotes);
+  const [subTab, setSubTab] = useState("My notes");
+  const [isAddNotePage, setIsAddNotePage] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState<{
     userID: string;
     email: string;
   }>({ userID: null, email: null });
-
-  const [showCourseSections, setShowCourseSections] = React.useState(false);
-  const [isOutsideOfLecture, setIsOutsideOfLecture] = React.useState(false);
-  const [selectedCourse, setSelectedCourse] = React.useState<string>(null);
-  const [selectedSection, setSelectedSection] = React.useState<string>(null);
-  const [displayedSectionNotes, setDisplayedSectionNotes] = React.useState<
-    INote[]
-  >([]);
-
-  const [isNoteDetailPage, setIsNoteDetailPage] = React.useState(false);
-  const [noteToEdit, setNoteToEdit] = React.useState<INote | null>(null);
-
-  const { courses, isFetchingCourses, fetchCourses } = useFetchCourses();
-  const { courseNotes, fetchCourseNotes } = useFetchCourseNotes();
-
-  const sortedNotes =
-    subTab === "My notes"
-      ? displayedSectionNotes.filter((note) => !note.isPublic)
-      : displayedSectionNotes.filter((note) => note.isPublic);
+  const [showCourseSections, setShowCourseSections] = useState(false);
+  const [isOutsideOfLecture, setIsOutsideOfLecture] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<string>(null);
+  const [selectedSection, setSelectedSection] = useState<string>(null);
+  const [displayedAuthUserNotes, setDisplayedAuthUserNotes] = useState<INote[]>(
+    []
+  );
+  const [sections, setSections] = useState<any>([]);
+  const [isNoteDetailPage, setIsNoteDetailPage] = useState(false);
+  const [noteToEdit, setNoteToEdit] = useState<INote | null>(null);
+  const [courseNotes, setCourseNotes] = useState<INote[]>([]);
+  const { courses, fetchCourses } = useFetchCourses();
+  const { fetchCourseNotes } = useFetchCourseNotes();
 
   useEffect(() => {
     chrome.storage.sync.get(["userID", "email", "token"], (result) => {
@@ -69,109 +62,135 @@ const App: React.FC<{}> = () => {
       sendResponse: (response?: any) => void
     ) => {
       if (message.message === "login") {
-        console.log("Login data received:", message.data);
         setLoggedInUser(message.data);
         sendResponse({ status: "received" });
       } else if (message.message === "logout") {
-        console.log("Logout message received");
         handleLogout();
         sendResponse({ status: "received" });
       }
     };
 
     chrome.runtime.onMessage.addListener(messageListener);
-
-    return () => {
-      chrome.runtime.onMessage.removeListener(messageListener);
-    };
+    return () => chrome.runtime.onMessage.removeListener(messageListener);
   }, []);
 
   const handleLogout = useCallback(() => {
-    setLoggedInUser(null);
+    setLoggedInUser({ userID: null, email: null });
     setIsDrawerOpen(false);
     setActiveTab(PAGES.allNotes);
     setSubTab("My notes");
-    setIsAddingNote(false);
-    // Reset other state variables as needed
+    setIsAddNotePage(false);
     setShowCourseSections(false);
     setIsOutsideOfLecture(false);
     setSelectedCourse(null);
     setSelectedSection(null);
-    setDisplayedSectionNotes([]);
+    setDisplayedAuthUserNotes([]);
     setIsNoteDetailPage(false);
     setNoteToEdit(null);
   }, []);
 
-  const toggleDrawer = () => {
-    setIsDrawerOpen((prevState) => !prevState);
-  };
+  const toggleDrawer = useCallback(() => setIsDrawerOpen((prev) => !prev), []);
 
-  const handleTabSelect = async (tab: string) => {
-    if (tab === PAGES.lectureNotes) {
-      const lectureName = getLectureName();
-      if (!lectureName) {
-        setIsOutsideOfLecture(true);
-      } else {
-        const notes = await getLectureNotes(lectureName, loggedInUser.userID);
-        setDisplayedSectionNotes(notes);
-        setSelectedSection(lectureName);
-        setIsOutsideOfLecture(false);
+  const handleTabSelect = useCallback(
+    async (tab: string) => {
+      if (tab === PAGES.lectureNotes) {
+        const lectureName = getLectureName();
+        if (lectureName) {
+          const notes = await getLectureNotes(lectureName, loggedInUser.userID);
+          setDisplayedAuthUserNotes(notes);
+          setSelectedSection(lectureName);
+          setIsOutsideOfLecture(false);
+        } else {
+          setIsOutsideOfLecture(true);
+        }
       }
-    }
-    setActiveTab(tab);
-    setShowCourseSections(false);
-  };
+      fetchCourses();
+      setActiveTab(tab);
+      setShowCourseSections(false);
+    },
+    [loggedInUser, fetchCourses]
+  );
+  console.log("courses", courses);
+  console.log("courseNotes", courseNotes);
+  console.log("sections", sections);
+  console.log("selectedCourse", selectedCourse);
+  console.log("selectedSection", selectedSection);
 
-  const handleAddNote = () => {
-    setIsAddingNote(true);
-  };
+  const handleClickCourse = useCallback(
+    async (courseID: string) => {
+      const course = courses.find((course) => course.idcourses === courseID);
+      const selectedCourseNotes = await fetchCourseNotes(
+        courseID,
+        loggedInUser.userID
+      );
+      setSelectedCourse(course.title);
+      setSections(fetchSections(selectedCourseNotes));
+      setShowCourseSections(true);
+      setIsOutsideOfLecture(false);
+      setCourseNotes(selectedCourseNotes);
+    },
+    [courses, fetchCourseNotes, loggedInUser]
+  );
 
-  const handleClickCourse = async (courseID: string) => {
-    await fetchCourseNotes(courseID, loggedInUser.userID);
-    setShowCourseSections(true);
-    const course = courses.find((course) => course.idcourses === courseID);
-    setSelectedCourse(course.title);
-    setIsOutsideOfLecture(false);
-  };
+  const handleClickSection = useCallback(
+    (section: INote) => {
+      const notes = courseNotes.filter(
+        (note) => note.lecture === section.lecture
+      );
+      setDisplayedAuthUserNotes(notes);
+      setActiveTab(PAGES.lectureNotes);
+      setSelectedSection(section.lecture);
+      setIsOutsideOfLecture(false);
+    },
+    [courseNotes]
+  );
 
-  const handleClickSection = (section: INote) => {
-    const notes = courseNotes.filter(
-      (note) => note.lecture === section.lecture
-    );
-    setDisplayedSectionNotes(notes);
-    setActiveTab(PAGES.lectureNotes);
-    setSelectedSection(section.lecture);
-    setIsOutsideOfLecture(false);
-  };
-
-  const handleClickNote = (note: INote) => {
+  const handleClickNote = useCallback((note: INote) => {
     setNoteToEdit(note);
     setIsNoteDetailPage(true);
-    setIsAddingNote(true);
-  };
+    setIsAddNotePage(true);
+  }, []);
+
+  const refreshNotes = useCallback(async () => {
+    const activeCourse = getCourseName();
+    const course = courses.find((course) => course.title === activeCourse);
+    const activeCourseNotes = await fetchCourseNotes(
+      course.idcourses,
+      loggedInUser.userID
+    );
+    const activeSection = getLectureName();
+    const updatedNotes = activeCourseNotes.filter(
+      (note) => note.lecture === activeSection
+    );
+
+    setDisplayedAuthUserNotes(updatedNotes);
+    setCourseNotes(updatedNotes);
+    setSelectedCourse(activeCourse);
+    setSections(fetchSections(activeCourseNotes));
+    setSelectedSection(activeSection);
+  }, [loggedInUser, selectedCourse, fetchCourseNotes, setCourseNotes]);
+
+  const handleAddNote = useCallback(() => setIsAddNotePage(true), []);
+
+  const handleAddNoteComplete = useCallback(() => {
+    setIsAddNotePage(false);
+    setIsNoteDetailPage(false);
+    setNoteToEdit(null);
+    setActiveTab(PAGES.lectureNotes);
+    refreshNotes();
+  }, [refreshNotes]);
 
   const handleUpdateNote = useCallback(
     async (updatedNote: INote) => {
       try {
         await updateNote(updatedNote);
-        // Refresh the notes list after updating
-        if (activeTab === PAGES.lectureNotes) {
-          const updatedNotes = await getLectureNotes(
-            selectedSection,
-            loggedInUser.userID
-          );
-          setDisplayedSectionNotes(updatedNotes);
-        } else if (selectedCourse) {
-          await fetchCourseNotes(selectedCourse, loggedInUser.userID);
-        }
+        await refreshNotes();
       } catch (error) {
         console.error("Error updating note:", error);
       }
     },
-    [activeTab, selectedSection, loggedInUser, selectedCourse, fetchCourseNotes]
+    [refreshNotes]
   );
-
-  console.log("selectedSection", selectedSection);
 
   const handleDeleteNote = useCallback(
     async (e: React.MouseEvent<HTMLDivElement>, noteId: string) => {
@@ -179,65 +198,118 @@ const App: React.FC<{}> = () => {
       if (window.confirm("Are you sure you want to delete this note?")) {
         try {
           await deleteNote(noteId, loggedInUser.userID);
-          // Refresh the notes list after deleting
-          if (activeTab === PAGES.lectureNotes) {
-            console.log("selectedSection", selectedSection);
-            const updatedNotes = await getLectureNotes(
-              selectedSection,
-              loggedInUser.userID
-            );
-            setDisplayedSectionNotes(updatedNotes);
-          } else if (selectedCourse) {
-            await fetchCourseNotes(selectedCourse, loggedInUser.userID);
-          }
+          await refreshNotes();
+          setShowCourseSections(true);
         } catch (error) {
           console.error("Error deleting note:", error);
         }
       }
     },
-    [activeTab, selectedSection, loggedInUser, selectedCourse, fetchCourseNotes]
+    [loggedInUser, refreshNotes]
   );
 
-  const handleAddNoteComplete = useCallback(() => {
-    setIsAddingNote(false);
-    setIsNoteDetailPage(false);
-    setNoteToEdit(null);
-    setActiveTab(PAGES.lectureNotes);
-  }, []);
-
-  const fetchSectionOptions = (lectureName: string) => {
-    const sectionNotes = courseNotes.filter(
-      (note: INote) => note.lecture === lectureName
-    );
-
-    return (
-      <OptionsWrapper>{`${sectionNotes.length} ${
-        sectionNotes.length === 1 ? "note" : "notes"
-      }`}</OptionsWrapper>
-    );
-  };
-
-  const fetchNoteOptions = (note: INote) => {
-    return (
-      <OptionsWrapper>
-        <NoteOptions
-          isPublic={note.isPublic}
-          onDelete={(e) => handleDeleteNote(e, note.idnotes)}
-        />
-      </OptionsWrapper>
-    );
-  };
-
-  const extractPlainText = (content: string): string => {
-    try {
-      const parsedContent = JSON.parse(content);
-      return parsedContent
-        .map((node) => node.children.map((child) => child.text).join(""))
-        .join("\n");
-    } catch (error) {
-      console.error("Error parsing note content:", error);
-      return content; // Return original content if parsing fails
+  const renderContent = () => {
+    if (!loggedInUser.userID) {
+      return (
+        <>
+          <Image src="https://iili.io/d8jz6HN.png" alt="Login" />
+          <LoginText>
+            Login to save your notes and access them from any device
+          </LoginText>
+        </>
+      );
     }
+
+    if (isAddNotePage || isNoteDetailPage) {
+      return (
+        <AddNote
+          isNoteDetailPage={isNoteDetailPage}
+          setIsNoteDetailPage={setIsNoteDetailPage}
+          courses={courses}
+          userID={loggedInUser.userID}
+          setIsAddingNote={setIsAddNotePage}
+          noteToEdit={noteToEdit}
+          onUpdateNote={handleUpdateNote}
+          onComplete={handleAddNoteComplete}
+        />
+      );
+    }
+
+    return (
+      <>
+        <LogoContainer>Welcome {loggedInUser.email}!</LogoContainer>
+        <ButtonContainer>
+          {!isAddNotePage && (
+            <Button
+              title="Add Note For Current Lecture"
+              handleClick={handleAddNote}
+              icon="https://iili.io/d8XK7i7.png"
+            />
+          )}
+        </ButtonContainer>
+        <Tabs>
+          <Tabs.Tab
+            handleClick={() => handleTabSelect(PAGES.allNotes)}
+            title={PAGES.allNotes}
+            activeTab={activeTab}
+          />
+          <Tabs.Tab
+            handleClick={() => handleTabSelect(PAGES.lectureNotes)}
+            title={PAGES.lectureNotes}
+            activeTab={activeTab}
+          />
+          <Tabs.Tab
+            handleClick={() => handleTabSelect(PAGES.settings)}
+            title={PAGES.settings}
+            activeTab={activeTab}
+          />
+        </Tabs>
+        {renderTabContent()}
+      </>
+    );
+  };
+
+  const renderTabContent = () => {
+    if (activeTab === PAGES.lectureNotes && !isOutsideOfLecture) {
+      return (
+        <LectureTabContent
+          courses={courses}
+          setActiveTab={setActiveTab}
+          displayedAuthUserNotes={displayedAuthUserNotes}
+          setShowCourseSections={setShowCourseSections}
+          getCourseName={getCourseName}
+          setSelectedCourse={setSelectedCourse}
+          fetchCourseNotes={fetchCourseNotes}
+          selectedSection={selectedSection}
+          subTab={subTab}
+          setSubTab={setSubTab}
+          loggedInUser={loggedInUser}
+          handleDeleteNote={handleDeleteNote}
+          handleClickNote={handleClickNote}
+        />
+      );
+    }
+
+    if (activeTab === PAGES.allNotes) {
+      return (
+        <>
+          {showCourseSections && selectedCourse ? (
+            <AllSectionsTabContent
+              sections={sections}
+              courseNotes={courseNotes}
+              handleClickSection={handleClickSection}
+            />
+          ) : (
+            <AllNotesTabContent
+              courses={courses}
+              handleClickCourse={handleClickCourse}
+            />
+          )}
+        </>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -246,184 +318,12 @@ const App: React.FC<{}> = () => {
         {isDrawerOpen ? ">" : "<"}
       </DrawerHandle>
       <DrawerContainer $isOpen={isDrawerOpen}>
-        <Container>
-          {loggedInUser.userID ? (
-            <>
-              <LogoContainer>Welcome {loggedInUser.email}!</LogoContainer>
-              <ButtonContainer>
-                {!isAddingNote && (
-                  <Button
-                    title="Add Note For Current Lecture"
-                    handleClick={handleAddNote}
-                    icon="https://iili.io/d8XK7i7.png"
-                  />
-                )}
-              </ButtonContainer>
-              {isAddingNote || isNoteDetailPage ? (
-                <AddNote
-                  isNoteDetailPage={isNoteDetailPage}
-                  setIsNoteDetailPage={setIsNoteDetailPage}
-                  courses={courses}
-                  userID={loggedInUser.userID}
-                  setIsAddingNote={setIsAddingNote}
-                  noteToEdit={noteToEdit}
-                  onUpdateNote={handleUpdateNote}
-                  onComplete={handleAddNoteComplete}
-                />
-              ) : (
-                <>
-                  <Tabs>
-                    <Tabs.Tab
-                      handleClick={() => handleTabSelect(PAGES.allNotes)}
-                      title={PAGES.allNotes}
-                      activeTab={activeTab}
-                    />
-                    <Tabs.Tab
-                      handleClick={() => handleTabSelect(PAGES.lectureNotes)}
-                      title={PAGES.lectureNotes}
-                      activeTab={activeTab}
-                    />
-                    <Tabs.Tab
-                      handleClick={() => handleTabSelect(PAGES.settings)}
-                      title={PAGES.settings}
-                      activeTab={activeTab}
-                    />
-                  </Tabs>
-                  {activeTab === PAGES.lectureNotes && !isOutsideOfLecture && (
-                    <>
-                      <PageTitle
-                        handleBackClick={() => setActiveTab(PAGES.allNotes)}
-                        selectedSection={selectedSection}
-                      />
-                      <SubTabs>
-                        <SubTabs.Tab
-                          handleClick={() => setSubTab("My notes")}
-                          title="My notes"
-                          activeTab={subTab}
-                        />
-                        <SubTabs.Tab
-                          handleClick={() => setSubTab("Community notes")}
-                          title="Community notes"
-                          activeTab={subTab}
-                        />
-                      </SubTabs>
-                    </>
-                  )}
-
-                  <List>
-                    {activeTab === PAGES.allNotes && (
-                      <>
-                        {isFetchingCourses ? (
-                          <div>Fetching courses...</div>
-                        ) : (
-                          <>
-                            {showCourseSections ? (
-                              <>
-                                <PageTitle
-                                  handleBackClick={() => {
-                                    setActiveTab(PAGES.allNotes);
-                                    setShowCourseSections(false);
-                                  }}
-                                  selectedSection={selectedCourse}
-                                />
-
-                                {fetchSections(courseNotes).map((section) => (
-                                  <List.Item
-                                    key={section.idnotes}
-                                    title={section.lecture}
-                                    options={fetchSectionOptions(
-                                      section.lecture
-                                    )}
-                                    handleClick={() =>
-                                      handleClickSection(section)
-                                    }
-                                  />
-                                ))}
-                              </>
-                            ) : (
-                              <>
-                                {courses.length > 0 ? (
-                                  courses.map((course) => (
-                                    <List.Item
-                                      key={course.idcourses}
-                                      title={course.title}
-                                      options={null}
-                                      handleClick={() =>
-                                        handleClickCourse(course.idcourses)
-                                      }
-                                    />
-                                  ))
-                                ) : (
-                                  <NothingFoundContainer>
-                                    <img
-                                      src="https://iili.io/d8jz6HN.png"
-                                      alt="Nothing found"
-                                    />
-                                    <div>No courses found</div>
-                                  </NothingFoundContainer>
-                                )}
-                              </>
-                            )}
-                          </>
-                        )}
-                      </>
-                    )}
-
-                    {activeTab === PAGES.lectureNotes && (
-                      <>
-                        {isOutsideOfLecture ? (
-                          <div>Go back to lecture</div>
-                        ) : (
-                          <>
-                            {sortedNotes.length > 0 ? (
-                              sortedNotes.map((note) => (
-                                <List.Item
-                                  title={note.title}
-                                  key={note.idnotes}
-                                  timestamp={note.timestamp}
-                                  content={extractPlainText(note.content)}
-                                  options={fetchNoteOptions(note)}
-                                  handleClick={() => handleClickNote(note)}
-                                />
-                              ))
-                            ) : (
-                              <NothingFoundContainer>
-                                <img
-                                  src="https://iili.io/d8jz6HN.png"
-                                  alt="Nothing found"
-                                />
-                                <div>No notes found</div>
-                              </NothingFoundContainer>
-                            )}
-                          </>
-                        )}
-                      </>
-                    )}
-                    {activeTab === PAGES.settings && <p>Settings</p>}
-                  </List>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <Image src="https://iili.io/d8jz6HN.png" alt="Login" />
-              <LoginText>
-                Login to save your notes and access them from any device
-              </LoginText>
-            </>
-          )}
-        </Container>
+        <Container>{renderContent()}</Container>
       </DrawerContainer>
     </>
   );
 };
 
-const container = document.createElement("div");
-document.body.appendChild(container);
-const root = createRoot(container!);
-root.render(<App />);
-
-// Drawer handle component
 const DrawerHandle = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   top: 50%;
@@ -443,7 +343,6 @@ const DrawerHandle = styled.div<{ $isOpen: boolean }>`
   color: white;
 `;
 
-// Main container for the sliding drawer
 const DrawerContainer = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   top: 10%;
@@ -483,21 +382,6 @@ const LogoContainer = styled.div`
   font-weight: bold;
 `;
 
-const Logo = styled.img`
-  width: 30px;
-  margin-right: 10px;
-`;
-
-const OptionsWrapper = styled.div`
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: center;
-  img {
-    cursor: pointer;
-  }
-`;
-
 const ButtonContainer = styled.div`
   display: flex;
   align-items: center;
@@ -517,14 +401,8 @@ const Image = styled.img`
   align-self: center;
 `;
 
-const NothingFoundContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-top: 60px;
-  img {
-    width: 50%;
-  }
-`;
+const container = document.createElement("div");
+document.body.appendChild(container);
+const root = createRoot(container!);
+root.render(<App />);
 
