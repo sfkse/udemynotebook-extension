@@ -18,7 +18,7 @@ import useFetchCourses from "../hooks/useFetchCourses";
 import useFetchCourseNotes from "../hooks/useFetchCourseNotes";
 
 import { getLectureNotes, updateNote, deleteNote } from "../api/notes";
-import { setAuthToken } from "../api/apiClient";
+import { setAuthToken, setRefreshToken } from "../api/apiClient";
 
 import "./contentScript.css";
 
@@ -46,13 +46,22 @@ const App: React.FC<{}> = () => {
   const { fetchCourseNotes } = useFetchCourseNotes();
 
   useEffect(() => {
-    chrome.storage.sync.get(["userID", "email", "token"], (result) => {
-      if (result.userID && result.email && result.token) {
-        setLoggedInUser({ userID: result.userID, email: result.email });
-        setAuthToken(result.token);
-        fetchCourses();
+    chrome.storage.sync.get(
+      ["userID", "email", "token", "refreshToken"],
+      (result) => {
+        if (
+          result.userID &&
+          result.email &&
+          result.token &&
+          result.refreshToken
+        ) {
+          setLoggedInUser({ userID: result.userID, email: result.email });
+          setAuthToken(result.token);
+          setRefreshToken(result.refreshToken);
+          fetchCourses();
+        }
       }
-    });
+    );
   }, []);
 
   useEffect(() => {
@@ -116,6 +125,11 @@ const App: React.FC<{}> = () => {
   console.log("selectedCourse", selectedCourse);
   console.log("selectedSection", selectedSection);
 
+  const getLectureToAddNote = () => {
+    if (selectedSection) return selectedSection.split(".")[0];
+    else return getLectureName().split(".")[0];
+  };
+
   const handleClickCourse = useCallback(
     async (courseID: string) => {
       const course = courses.find((course) => course.idcourses === courseID);
@@ -170,7 +184,7 @@ const App: React.FC<{}> = () => {
     setSelectedSection(activeSection);
   }, [loggedInUser, selectedCourse, fetchCourseNotes, setCourseNotes]);
 
-  const handleAddNote = useCallback(() => setIsAddNotePage(true), []);
+  const handleClickAddNote = useCallback(() => setIsAddNotePage(true), []);
 
   const handleAddNoteComplete = useCallback(() => {
     setIsAddNotePage(false);
@@ -241,8 +255,8 @@ const App: React.FC<{}> = () => {
         <ButtonContainer>
           {!isAddNotePage && (
             <Button
-              title="Add Note For Current Lecture"
-              handleClick={handleAddNote}
+              title={`Add note for lecture ${getLectureToAddNote()}`}
+              handleClick={handleClickAddNote}
               icon="https://iili.io/d8XK7i7.png"
             />
           )}

@@ -4,6 +4,16 @@ import { jwtDecode } from "jwt-decode";
 let authToken: string | null = null;
 let refreshToken: string | null = null;
 
+interface QueuedRequest {
+  endpoint: string;
+  options: RequestInit;
+  resolve: (value: any) => void;
+  reject: (reason: any) => void;
+}
+
+let isRefreshing = false;
+let requestQueue: QueuedRequest[] = [];
+
 export const setAuthToken = (token: string | null) => {
   authToken = token;
 };
@@ -45,10 +55,17 @@ const renewToken = async (): Promise<string> => {
   return data.token;
 };
 
+const processQueue = () => {
+  requestQueue.forEach(({ endpoint, options, resolve, reject }) => {
+    apiClient(endpoint, options).then(resolve).catch(reject);
+  });
+  requestQueue = [];
+};
+
 export const apiClient = async (
   endpoint: string,
   options: RequestInit = {}
-) => {
+): Promise<any> => {
   const headers = {
     ...options.headers,
     "Content-Type": "application/json",
@@ -56,28 +73,45 @@ export const apiClient = async (
 
   if (authToken) {
     if (isTokenExpired(authToken)) {
+      if (isRefreshing) {
+        // If a token refresh is already in progress, add this request to the queue
+        return new Promise((resolve, reject) => {
+          requestQueue.push({ endpoint, options, resolve, reject });
+        });
+      }
+
+      isRefreshing = true;
       try {
         authToken = await renewToken();
+        isRefreshing = false;
+        processQueue(); // Process any queued requests
       } catch (error) {
-        // If token renewal fails, clear the token and throw an error
+        isRefreshing = false;
         setAuthToken(null);
+        requestQueue.forEach(({ reject }) => reject(error));
+        requestQueue = [];
         throw new Error("Session expired. Please log in again.");
       }
     }
     headers["Authorization"] = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-    method: options.method || "GET",
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+      method: options.method || "GET",
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || "API request failed");
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "API request failed");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("API call failed:", error);
+    throw error;
   }
-
-  return response.json();
 };
 
