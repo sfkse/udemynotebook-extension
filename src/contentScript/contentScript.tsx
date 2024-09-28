@@ -135,7 +135,7 @@ const App: React.FC<{}> = () => {
       setActiveTab(tab);
       setShowCourseSections(false);
     },
-    [loggedInUser, fetchCourses]
+    [loggedInUser, fetchCourses, subTab]
   );
 
   const getLectureToAddNote = () => {
@@ -316,6 +316,7 @@ const App: React.FC<{}> = () => {
           courses={courses}
           setActiveTab={setActiveTab}
           displayedAuthUserNotes={displayedAuthUserNotes}
+          courseCommunityNotes={courseCommunityNotes}
           setShowCourseSections={setShowCourseSections}
           getCourseName={getCourseName}
           setSelectedCourse={setSelectedCourse}

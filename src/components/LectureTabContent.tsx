@@ -22,6 +22,7 @@ const LectureTabContent: React.FC<{
   displayedAuthUserNotes: any;
   handleDeleteNote: any;
   handleClickNote: any;
+  courseCommunityNotes: any;
 }> = ({
   courses,
   setActiveTab,
@@ -36,11 +37,10 @@ const LectureTabContent: React.FC<{
   displayedAuthUserNotes,
   handleDeleteNote,
   handleClickNote,
+  courseCommunityNotes,
 }) => {
   const notesByTabs =
-    subTab === "My notes"
-      ? displayedAuthUserNotes
-      : displayedAuthUserNotes.filter((note) => note.isPublic);
+    subTab === "My notes" ? displayedAuthUserNotes : courseCommunityNotes;
 
   const extractPlainText = useCallback((content: string): string => {
     try {
@@ -95,8 +95,8 @@ const LectureTabContent: React.FC<{
           activeTab={subTab}
         />
       </SubTabs>
-      {displayedAuthUserNotes.length > 0 ? (
-        displayedAuthUserNotes.map((note) => (
+      {notesByTabs.length > 0 ? (
+        notesByTabs.map((note) => (
           <List.Item
             title={note.title}
             key={note.idnotes}
