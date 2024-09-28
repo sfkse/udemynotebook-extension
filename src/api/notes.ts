@@ -13,6 +13,29 @@ export const getCourseNotes = async (courseID: string, userID: string) => {
   }
 };
 
+export const getLectureNotes = async (lectureName: string, userID: string) => {
+  try {
+    const response = await apiClient(
+      `/notes/lecture?lectureName=${lectureName}&userID=${userID}`
+    );
+    return await response;
+  } catch (error) {
+    console.error("Error fetching lecture notes:", error);
+    return [];
+  }
+};
+
+export const getCourseCommunityNotes = async (courseID: string) => {
+  try {
+    const response = await apiClient(
+      `/notes/courseCommunity?courseID=${courseID}`
+    );
+    return await response;
+  } catch (error) {
+    console.error("Error fetching course community notes:", error);
+    return [];
+  }
+};
 export const createNote = async (newNote: INote) => {
   try {
     const response = await apiClient(`/notes/create`, {
@@ -26,18 +49,6 @@ export const createNote = async (newNote: INote) => {
   } catch (error) {
     console.error("Error creating note:", error);
     return {};
-  }
-};
-
-export const getLectureNotes = async (lectureName: string, userID: string) => {
-  try {
-    const response = await apiClient(
-      `/notes/lecture?lectureName=${lectureName}&userID=${userID}`
-    );
-    return await response;
-  } catch (error) {
-    console.error("Error fetching lecture notes:", error);
-    return [];
   }
 };
 

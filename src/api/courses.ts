@@ -1,8 +1,8 @@
 import { apiClient } from "./apiClient";
 
-export const getCourses = async (userID: string) => {
+export const getCourses = async (identifier: string) => {
   try {
-    const response = await apiClient(`/courses/${userID}`);
+    const response = await apiClient(`/courses/${identifier}`);
     return response;
   } catch (error) {
     console.error("Error fetching courses:", error);
@@ -10,10 +10,14 @@ export const getCourses = async (userID: string) => {
   }
 };
 
-export const createCourse = async (courseName: string) => {
+export const createCourse = async (
+  courseName: string,
+  identifier: string,
+  userID: string
+) => {
   try {
     const response = await apiClient("/courses", {
-      body: JSON.stringify({ title: courseName }),
+      body: JSON.stringify({ title: courseName, identifier, userID }),
       method: "POST",
     });
     return response;

@@ -25,6 +25,7 @@ type AddNoteProps = {
   noteToEdit?: INote | null;
   onUpdateNote: (note: INote) => Promise<void>;
   onComplete: (lecture?: string) => void;
+  handleCancelAddNote: () => void;
 };
 
 const AddNote = ({
@@ -34,6 +35,7 @@ const AddNote = ({
   noteToEdit,
   onUpdateNote,
   onComplete,
+  handleCancelAddNote,
 }: AddNoteProps) => {
   const [noteTitle, setNoteTitle] = useState(noteToEdit?.title || "");
   const [noteContent, setNoteContent] = useState(noteToEdit?.content || "");
@@ -52,7 +54,7 @@ const AddNote = ({
         },
       ];
 
-  const getCourseId = useCallback(async () => {
+  const getCourseId = async () => {
     if (noteToEdit) {
       // If in edit mode, return the course ID from the note being edited
       return noteToEdit.idcourses;
@@ -86,15 +88,17 @@ const AddNote = ({
     }
 
     return ""; // Return empty string if no course ID could be determined
-  }, [noteToEdit, courses, userID]);
+  };
 
   const createAndGetCourseId = async (courseName: string) => {
-    const course = await createCourse(courseName);
+    const identifier = window.location.href.split("/")[4];
+    const course = await createCourse(courseName, identifier, userID);
     return course.idcourses;
   };
 
   const handleSaveNote = async (e) => {
     e.preventDefault();
+    setIsSaving(true);
     const currentTimeElement = document.querySelector(
       '[data-purpose="current-time"]'
     );
@@ -113,14 +117,13 @@ const AddNote = ({
     };
     console.log(newNote);
     try {
-      setIsSaving(true);
       if (noteToEdit) {
         await onUpdateNote({ ...newNote, idnotes: noteToEdit.idnotes });
       } else {
         await createNote(newNote);
       }
       // This is to refresh the notes based on the lecture name
-      onComplete(newNote.lecture);
+      onComplete(newNote.idcourses);
     } catch (error) {
       console.error(error);
     } finally {
@@ -277,7 +280,7 @@ const AddNote = ({
         <CheckboxLabel htmlFor="private">Visible to everyone</CheckboxLabel>
       </CheckboxContainer>
       <ButtonContainer>
-        <Button outlined title="Cancel" handleClick={onComplete} />
+        <Button outlined title="Cancel" handleClick={handleCancelAddNote} />
         <Button
           title={noteToEdit ? "Update" : "Save"}
           handleClick={handleSaveNote}

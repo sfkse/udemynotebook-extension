@@ -11,7 +11,7 @@ export const fetchSections = (courseNotes: INote[]) => {
 
     return acc;
   }, []);
-  console.log("sections", sections);
+
   return sections;
 };
 

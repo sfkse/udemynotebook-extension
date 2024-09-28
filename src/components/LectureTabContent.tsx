@@ -37,6 +37,11 @@ const LectureTabContent: React.FC<{
   handleDeleteNote,
   handleClickNote,
 }) => {
+  const notesByTabs =
+    subTab === "My notes"
+      ? displayedAuthUserNotes
+      : displayedAuthUserNotes.filter((note) => note.isPublic);
+
   const extractPlainText = useCallback((content: string): string => {
     try {
       const parsedContent = JSON.parse(content);
@@ -55,7 +60,7 @@ const LectureTabContent: React.FC<{
         <OptionsWrapper>
           <NoteOptions
             isPublic={note.isPublic}
-            onDelete={(e) => handleDeleteNote(e, note.idnotes)}
+            onDelete={(e) => handleDeleteNote(e, note)}
           />
         </OptionsWrapper>
       );
@@ -122,3 +127,4 @@ const OptionsWrapper = styled.div`
     cursor: pointer;
   }
 `;
+

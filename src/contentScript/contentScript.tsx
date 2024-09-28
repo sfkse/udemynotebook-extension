@@ -16,6 +16,7 @@ import { fetchSections, getCourseName, getLectureName } from "../utils/notes";
 
 import useFetchCourses from "../hooks/useFetchCourses";
 import useFetchCourseNotes from "../hooks/useFetchCourseNotes";
+import useFetchCourseCommunityNotes from "../hooks/useFetchCourseCommunityNotes";
 
 import { getLectureNotes, updateNote, deleteNote } from "../api/notes";
 import { setAuthToken, setRefreshToken } from "../api/apiClient";
@@ -42,8 +43,10 @@ const App: React.FC<{}> = () => {
   const [isNoteDetailPage, setIsNoteDetailPage] = useState(false);
   const [noteToEdit, setNoteToEdit] = useState<INote | null>(null);
   const [courseNotes, setCourseNotes] = useState<INote[]>([]);
+  const [courseCommunityNotes, setCourseCommunityNotes] = useState<INote[]>([]);
   const { courses, fetchCourses } = useFetchCourses();
   const { fetchCourseNotes } = useFetchCourseNotes();
+  const { fetchCourseCommunityNotes } = useFetchCourseCommunityNotes();
 
   useEffect(() => {
     chrome.storage.sync.get(
@@ -106,7 +109,22 @@ const App: React.FC<{}> = () => {
         const lectureName = getLectureName();
         if (lectureName) {
           const notes = await getLectureNotes(lectureName, loggedInUser.userID);
-          setDisplayedAuthUserNotes(notes);
+          const courseID = notes.length > 0 ? notes[0].idcourses : null;
+          const courseCommunityNotes = courseID
+            ? await fetchCourseCommunityNotes(courseID)
+            : [];
+          const lectureCommunityNotes =
+            courseCommunityNotes.length > 0
+              ? courseCommunityNotes.filter(
+                  (note) => note.lecture === lectureName
+                )
+              : [];
+
+          const displayedNotes =
+            subTab === "My notes" ? notes : lectureCommunityNotes;
+
+          setDisplayedAuthUserNotes(displayedNotes);
+          setCourseCommunityNotes(lectureCommunityNotes);
           setSelectedSection(lectureName);
           setIsOutsideOfLecture(false);
         } else {
@@ -132,11 +150,14 @@ const App: React.FC<{}> = () => {
         courseID,
         loggedInUser.userID
       );
+      const courseCommunityNotes = await fetchCourseCommunityNotes(courseID);
+
       setSelectedCourse(course.title);
       setSections(fetchSections(selectedCourseNotes));
       setShowCourseSections(true);
       setIsOutsideOfLecture(false);
       setCourseNotes(selectedCourseNotes);
+      setCourseCommunityNotes(courseCommunityNotes);
     },
     [courses, fetchCourseNotes, loggedInUser]
   );
@@ -160,37 +181,37 @@ const App: React.FC<{}> = () => {
     setIsAddNotePage(true);
   }, []);
 
-  const refreshNotes = useCallback(
-    async (section?: string) => {
-      const activeCourse = getCourseName();
-      const course = courses.find((course) => course.title === activeCourse);
-      const activeCourseNotes = await fetchCourseNotes(
-        course.idcourses,
-        loggedInUser.userID
-      );
-      const activeSection = section ?? getLectureName();
-      const updatedNotes = activeCourseNotes.filter(
-        (note) => note.lecture === activeSection
-      );
+  const refreshNotes = async (courseID?: string) => {
+    const activeCourseNotes = await fetchCourseNotes(
+      courseID,
+      loggedInUser.userID
+    );
+    const activeLecture = getLectureToAddNote();
+    const updatedNotes = activeCourseNotes.filter(
+      (note) => note.lecture === activeLecture
+    );
 
-      setDisplayedAuthUserNotes(updatedNotes);
-      setCourseNotes(activeCourseNotes);
-      setSelectedCourse(activeCourse);
-      setSections(fetchSections(activeCourseNotes));
-      setSelectedSection(activeSection);
-    },
-    [loggedInUser, selectedCourse, fetchCourseNotes, setCourseNotes]
-  );
+    setDisplayedAuthUserNotes(updatedNotes);
+    setCourseNotes(activeCourseNotes);
+    setSections(fetchSections(activeCourseNotes));
+  };
 
   const handleClickAddNote = useCallback(() => setIsAddNotePage(true), []);
 
+  const handleCancelAddNote = useCallback(() => {
+    setIsAddNotePage(false);
+    setIsNoteDetailPage(false);
+    setNoteToEdit(null);
+  }, []);
+
   const handleAddNoteComplete = useCallback(
-    (lecture?: string) => {
+    async (courseID?: string) => {
       setIsAddNotePage(false);
       setIsNoteDetailPage(false);
       setNoteToEdit(null);
       setActiveTab(PAGES.lectureNotes);
-      refreshNotes(lecture);
+      fetchCourses();
+      refreshNotes(courseID);
     },
     [refreshNotes]
   );
@@ -199,7 +220,7 @@ const App: React.FC<{}> = () => {
     async (updatedNote: INote) => {
       try {
         await updateNote(updatedNote);
-        await refreshNotes();
+        await refreshNotes(updatedNote.idcourses);
       } catch (error) {
         console.error("Error updating note:", error);
       }
@@ -208,12 +229,12 @@ const App: React.FC<{}> = () => {
   );
 
   const handleDeleteNote = useCallback(
-    async (e: React.MouseEvent<HTMLDivElement>, noteId: string) => {
+    async (e: React.MouseEvent<HTMLDivElement>, note: INote) => {
       e.stopPropagation();
       if (window.confirm("Are you sure you want to delete this note?")) {
         try {
-          await deleteNote(noteId, loggedInUser.userID);
-          await refreshNotes();
+          await deleteNote(note.idnotes, loggedInUser.userID);
+          await refreshNotes(note.idcourses);
           setShowCourseSections(true);
         } catch (error) {
           console.error("Error deleting note:", error);
@@ -247,6 +268,7 @@ const App: React.FC<{}> = () => {
           lectureToAdd={getLectureToAddNote()}
           onUpdateNote={handleUpdateNote}
           onComplete={handleAddNoteComplete}
+          handleCancelAddNote={handleCancelAddNote}
         />
       );
     }

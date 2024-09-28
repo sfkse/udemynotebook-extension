@@ -12,6 +12,7 @@ const useFetchCourses = () => {
         const fetchedCourses = await getCourses(result.userID);
         setCourses(fetchedCourses);
         setIsFetchingCourses(false);
+        return fetchedCourses as ICourse[];
       }
     });
   };
